@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"github.com/hyusuk/tama/token"
+	"github.com/hyusuk/tama/scanner"
 	"testing"
 )
 
@@ -16,7 +16,7 @@ func TestParseFile(t *testing.T) {
 	if !ok {
 		t.Fatalf("Unexpected expression")
 	}
-	if prim.Kind != token.INT || prim.Value != "1" {
+	if prim.Kind != scanner.INT || prim.Value != "1" {
 		t.Fatalf("Unexpected primitive, kind: %d, value: %s", prim.Kind, prim.Value)
 	}
 }

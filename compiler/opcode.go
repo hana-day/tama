@@ -9,59 +9,59 @@ const (
 	LOADK
 )
 
-func getOpCode(inst uint32) int {
+func GetOpCode(inst uint32) int {
 	return int(inst >> 26)
 }
 
-func getArgA(inst uint32) int {
+func GetArgA(inst uint32) int {
 	return int(inst>>18) & 0xff
 }
 
-func getArgB(inst uint32) int {
+func GetArgB(inst uint32) int {
 	return int(inst & 0x1ff)
 }
 
-func getArgBx(inst uint32) int {
+func GetArgBx(inst uint32) int {
 	return int(inst & 0x3ffff)
 }
 
-func getArgC(inst uint32) int {
+func GetArgC(inst uint32) int {
 	return int(inst>>9) & 0x1ff
 }
 
-func setOpCode(inst *uint32, opcode int) {
+func SetOpCode(inst *uint32, opcode int) {
 	*inst = (*inst & 0x3ffffff) | uint32(opcode<<26)
 }
 
-func setArgA(inst *uint32, arg int) {
+func SetArgA(inst *uint32, arg int) {
 	*inst = (*inst & 0xfc03ffff) | uint32((arg&0xff)<<18)
 }
 
-func setArgB(inst *uint32, arg int) {
+func SetArgB(inst *uint32, arg int) {
 	*inst = (*inst & 0xfffffe00) | uint32(arg&0x1ff)
 }
 
-func setArgC(inst *uint32, arg int) {
+func SetArgC(inst *uint32, arg int) {
 	*inst = (*inst & 0xfffc01ff) | uint32((arg&0x1ff)<<9)
 }
 
-func setArgBx(inst *uint32, arg int) {
+func SetArgBx(inst *uint32, arg int) {
 	*inst = (*inst & 0xfffc0000) | uint32(arg&0x3ffff)
 }
 
-func createABC(op int, a int, b int, c int) uint32 {
+func CreateABC(op int, a int, b int, c int) uint32 {
 	var inst uint32 = 0
-	setOpCode(&inst, op)
-	setArgA(&inst, a)
-	setArgB(&inst, b)
-	setArgC(&inst, c)
+	SetOpCode(&inst, op)
+	SetArgA(&inst, a)
+	SetArgB(&inst, b)
+	SetArgC(&inst, c)
 	return inst
 }
 
-func createABx(op int, a int, bx int) uint32 {
+func CreateABx(op int, a int, bx int) uint32 {
 	var inst uint32 = 0
-	setOpCode(&inst, op)
-	setArgA(&inst, a)
-	setArgBx(&inst, bx)
+	SetOpCode(&inst, op)
+	SetArgA(&inst, a)
+	SetArgBx(&inst, bx)
 	return inst
 }

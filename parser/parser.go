@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"github.com/hyusuk/tama/token"
+	"github.com/hyusuk/tama/scanner"
 	"log"
 )
 
@@ -11,9 +11,9 @@ type File struct {
 }
 
 type Parser struct {
-	scanner token.Scanner
-	tok     token.Token // Next token
-	lit     string      // Next token literal
+	scanner scanner.Scanner
+	tok     scanner.Token // Next token
+	lit     string        // Next token literal
 }
 
 func (p *Parser) init(src []byte) {
@@ -25,7 +25,7 @@ func (p *Parser) next() {
 	p.tok, p.lit = p.scanner.Scan()
 }
 
-func (p *Parser) expect(tok token.Token) {
+func (p *Parser) expect(tok scanner.Token) {
 	if p.tok != tok {
 		log.Fatalf("expected token %d, but got %d", tok, p.tok)
 	}
@@ -40,7 +40,7 @@ func (p *Parser) parseInt() Expr {
 }
 
 func (p *Parser) parseExpr() (expr Expr) {
-	if p.tok == token.INT {
+	if p.tok == scanner.INT {
 		expr = p.parseInt()
 		p.next()
 		return
@@ -50,7 +50,7 @@ func (p *Parser) parseExpr() (expr Expr) {
 }
 
 func (p *Parser) parseExprs() (exprs []Expr) {
-	for p.tok != token.EOF {
+	for p.tok != scanner.EOF {
 		exprs = append(exprs, p.parseExpr())
 	}
 	return

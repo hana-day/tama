@@ -3,40 +3,40 @@ package compiler
 import (
 	"github.com/hyusuk/tama"
 	"github.com/hyusuk/tama/parser"
-	"github.com/hyusuk/tama/token"
+	"github.com/hyusuk/tama/scanner"
 	"strconv"
 )
 
 type Compiler struct {
-	insts  []uint32
-	consts []tama.TValue
+	Insts  []uint32
+	Consts []tama.TValue
 }
 
 func (c *Compiler) add(inst uint32) {
-	c.insts = append(c.insts, inst)
+	c.Insts = append(c.Insts, inst)
 }
 
 func (c *Compiler) addABx(op int, a int, bx int) {
-	c.add(createABx(op, a, bx))
+	c.add(CreateABx(op, a, bx))
 }
 
 func (co *Compiler) addABC(op int, a int, b int, c int) {
-	co.add(createABC(op, a, b, c))
+	co.add(CreateABC(op, a, b, c))
 }
 
 func (c *Compiler) constIndex(v tama.TValue) int {
-	for i, cs := range c.consts {
+	for i, cs := range c.Consts {
 		if cs == v {
 			return i
 		}
 	}
-	c.consts = append(c.consts, v)
-	return len(c.consts) - 1
+	c.Consts = append(c.Consts, v)
+	return len(c.Consts) - 1
 }
 
 func (c *Compiler) compilePrimitive(prim *parser.Primitive) {
 	reg := 0
-	if prim.Kind == token.INT {
+	if prim.Kind == scanner.INT {
 		f, _ := strconv.ParseFloat(prim.Value, 64)
 		v := tama.TNumber(f)
 		c.addABx(LOADK, reg, c.constIndex(v))
