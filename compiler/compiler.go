@@ -7,13 +7,24 @@ import (
 	"strconv"
 )
 
-type Compiler struct {
+type FuncProto struct {
 	Insts  []uint32
 	Consts []tama.TValue
 }
 
+func newFuncProto() *FuncProto {
+	return &FuncProto{
+		Insts:  []uint32{},
+		Consts: []tama.TValue{},
+	}
+}
+
+type Compiler struct {
+	Proto *FuncProto
+}
+
 func (c *Compiler) add(inst uint32) {
-	c.Insts = append(c.Insts, inst)
+	c.Proto.Insts = append(c.Proto.Insts, inst)
 }
 
 func (c *Compiler) addABx(op int, a int, bx int) {
@@ -25,13 +36,13 @@ func (co *Compiler) addABC(op int, a int, b int, c int) {
 }
 
 func (c *Compiler) constIndex(v tama.TValue) int {
-	for i, cs := range c.Consts {
+	for i, cs := range c.Proto.Consts {
 		if cs == v {
 			return i
 		}
 	}
-	c.Consts = append(c.Consts, v)
-	return len(c.Consts) - 1
+	c.Proto.Consts = append(c.Proto.Consts, v)
+	return len(c.Proto.Consts) - 1
 }
 
 func (c *Compiler) compilePrimitive(prim *parser.Primitive) {
@@ -54,4 +65,12 @@ func (c *Compiler) compileExprs(exprs []parser.Expr) {
 		c.compileExpr(expr)
 		c.addABC(RETURN, 0, 2, 0)
 	}
+}
+
+func Compile(exprs []parser.Expr) (*FuncProto, error) {
+	c := Compiler{
+		Proto: newFuncProto(),
+	}
+	c.compileExprs(exprs)
+	return c.Proto, nil
 }

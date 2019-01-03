@@ -13,15 +13,15 @@ func TestCompileExprs(t *testing.T) {
 			Value: "1",
 		},
 	}
-	c := &Compiler{}
-	c.compileExprs(exprs)
-	if len(c.Insts) != 2 {
-		t.Fatalf("expected %d, but got %d", 2, len(c.Insts))
+	proto, _ := Compile(exprs)
+	insts := proto.Insts
+	if len(insts) != 2 {
+		t.Fatalf("expected %d, but got %d", 2, len(insts))
 	}
-	if opcode := GetOpCode(c.Insts[0]); opcode != LOADK {
+	if opcode := GetOpCode(insts[0]); opcode != LOADK {
 		t.Fatalf("expected %d, but got %d", LOADK, opcode)
 	}
-	if opcode := GetOpCode(c.Insts[1]); opcode != RETURN {
+	if opcode := GetOpCode(insts[1]); opcode != RETURN {
 		t.Fatalf("expected %d, but got %d", RETURN, opcode)
 	}
 }
