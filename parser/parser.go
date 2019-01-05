@@ -16,7 +16,7 @@ type Parser struct {
 	lit     string        // Next token literal
 }
 
-func (p *Parser) init(src []byte) {
+func (p *Parser) Init(src []byte) {
 	p.scanner.Init(src)
 	p.next()
 }

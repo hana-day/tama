@@ -7,7 +7,7 @@ import (
 
 func TestParseFile(t *testing.T) {
 	p := &Parser{}
-	p.init([]byte(" 1 "))
+	p.Init([]byte(" 1 "))
 	f := p.ParseFile()
 	if len(f.Exprs) != 1 {
 		t.Fatalf("expected %d, but got %d", 1, len(f.Exprs))

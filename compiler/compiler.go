@@ -1,30 +1,32 @@
 package compiler
 
 import (
-	"github.com/hyusuk/tama"
 	"github.com/hyusuk/tama/parser"
 	"github.com/hyusuk/tama/scanner"
+	"github.com/hyusuk/tama/types"
 	"strconv"
 )
 
-type FuncProto struct {
-	Insts  []uint32
-	Consts []tama.TValue
+type Closure struct {
+	Insts        []uint32
+	Consts       []types.Value
+	MaxStackSize int
 }
 
-func newFuncProto() *FuncProto {
-	return &FuncProto{
-		Insts:  []uint32{},
-		Consts: []tama.TValue{},
+func newClosure() *Closure {
+	return &Closure{
+		Insts:        []uint32{},
+		Consts:       []types.Value{},
+		MaxStackSize: 256,
 	}
 }
 
 type Compiler struct {
-	Proto *FuncProto
+	Cl *Closure
 }
 
 func (c *Compiler) add(inst uint32) {
-	c.Proto.Insts = append(c.Proto.Insts, inst)
+	c.Cl.Insts = append(c.Cl.Insts, inst)
 }
 
 func (c *Compiler) addABx(op int, a int, bx int) {
@@ -35,21 +37,21 @@ func (co *Compiler) addABC(op int, a int, b int, c int) {
 	co.add(CreateABC(op, a, b, c))
 }
 
-func (c *Compiler) constIndex(v tama.TValue) int {
-	for i, cs := range c.Proto.Consts {
+func (c *Compiler) constIndex(v types.Value) int {
+	for i, cs := range c.Cl.Consts {
 		if cs == v {
 			return i
 		}
 	}
-	c.Proto.Consts = append(c.Proto.Consts, v)
-	return len(c.Proto.Consts) - 1
+	c.Cl.Consts = append(c.Cl.Consts, v)
+	return len(c.Cl.Consts) - 1
 }
 
 func (c *Compiler) compilePrimitive(prim *parser.Primitive) {
 	reg := 0
 	if prim.Kind == scanner.INT {
 		f, _ := strconv.ParseFloat(prim.Value, 64)
-		v := tama.TNumber(f)
+		v := types.Number(f)
 		c.addABx(LOADK, reg, c.constIndex(v))
 	}
 }
@@ -67,10 +69,10 @@ func (c *Compiler) compileExprs(exprs []parser.Expr) {
 	}
 }
 
-func Compile(exprs []parser.Expr) (*FuncProto, error) {
+func Compile(exprs []parser.Expr) (*Closure, error) {
 	c := Compiler{
-		Proto: newFuncProto(),
+		Cl: newClosure(),
 	}
 	c.compileExprs(exprs)
-	return c.Proto, nil
+	return c.Cl, nil
 }

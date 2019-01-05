@@ -1,22 +1,21 @@
 package tama
 
 import (
+	"github.com/hyusuk/tama/types"
 	"testing"
 )
 
-func TestExecString(t *testing.T) {
-	testcases := []struct {
-		source   string
-		expected string
-	}{
-		{"1", "1"},
+func TestExecuteString(t *testing.T) {
+	s := NewState()
+	err := s.ExecString(" 1 ")
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	state := NewState()
-	for i, tc := range testcases {
-		result, _ := state.ExecString(tc.source)
-		if result != tc.expected {
-			t.Fatalf("case: %d, expected: %s, but got %s", i, tc.expected, result)
-		}
+	num, ok := s.CallStack.Top().(types.Number)
+	if !ok {
+		t.Fatalf("Invalid call stack top")
+	}
+	if num.String() != "1" {
+		t.Fatalf("expected %s, but got %s", "1", num.String())
 	}
 }

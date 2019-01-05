@@ -34,6 +34,10 @@ func (s *Stack) Sp() int {
 	return s.sp
 }
 
+func (s *Stack) SetSp(i int) {
+	s.sp = i
+}
+
 func (s *Stack) Len() int {
 	return s.len
 }
@@ -65,4 +69,11 @@ func (s *Stack) Get(i int) valueType {
 		return v.Value
 	}
 	return nil
+}
+
+func (s *Stack) Set(i int, v valueType) {
+	s.arr[i] = &Element{
+		Value: v,
+		stack: s,
+	}
 }

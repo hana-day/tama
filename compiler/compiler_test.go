@@ -13,8 +13,8 @@ func TestCompileExprs(t *testing.T) {
 			Value: "1",
 		},
 	}
-	proto, _ := Compile(exprs)
-	insts := proto.Insts
+	cl, _ := Compile(exprs)
+	insts := cl.Insts
 	if len(insts) != 2 {
 		t.Fatalf("expected %d, but got %d", 2, len(insts))
 	}
