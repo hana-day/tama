@@ -1,53 +1,68 @@
 package tama
 
+type valueType interface{}
+
 type Element struct {
-	Value interface{}
-	next  *Element
+	Value valueType
 
 	// The stack to which this element belongs.
 	stack *Stack
 }
 
 type Stack struct {
-	top *Element
+	arr []*Element
+	sp  int
 	len int
 }
 
-func NewStack() *Stack {
-	return new(Stack).Init()
+func NewStack(defaultLen int) *Stack {
+	return new(Stack).Init(defaultLen)
 }
 
-func (s *Stack) Init() *Stack {
-	s.top = nil
-	s.len = 0
+func (s *Stack) Init(defaultLen int) *Stack {
+	s.arr = make([]*Element, defaultLen)
+	s.sp = 0
+	s.len = defaultLen
 	return s
 }
 
-func (s *Stack) Top() interface{} {
-	if s.Len() > 0 {
-		return s.top.Value
-	}
-	return nil
+func (s *Stack) Top() valueType {
+	return s.Get(s.sp - 1)
+}
+
+func (s *Stack) Sp() int {
+	return s.sp
 }
 
 func (s *Stack) Len() int {
 	return s.len
 }
 
-func (s *Stack) Push(value interface{}) {
-	s.top = &Element{
+func (s *Stack) Push(value valueType) {
+	s.arr[s.sp] = &Element{
 		Value: value,
-		next:  s.top,
+		stack: s,
 	}
-	s.len++
+	s.sp++
 }
 
-func (s *Stack) Pop() (value interface{}) {
-	if s.Len() > 0 {
-		value = s.top.Value
-		s.top = s.top.next
-		s.len--
-		return
+func (s *Stack) Pop() valueType {
+	if s.sp <= 0 {
+		return nil
+	}
+	v := s.Get(s.sp - 1)
+	s.arr[s.sp-1] = nil
+	s.sp--
+	return v
+}
+
+func (s *Stack) Get(i int) valueType {
+	if i >= 0 && i < s.len {
+		v := s.arr[i]
+		if v == nil {
+			return nil
+		}
+		return v.Value
 	}
 	return nil
 }
