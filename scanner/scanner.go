@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"bytes"
 	"log"
 )
 
@@ -11,6 +12,8 @@ type Scanner struct {
 	offset  int
 }
 
+var eofCh byte = 255
+
 func (s *Scanner) next() {
 	if s.forward < len(s.src) {
 		s.offset = s.forward
@@ -18,7 +21,7 @@ func (s *Scanner) next() {
 		s.forward += 1
 	} else {
 		s.offset = len(s.src)
-		s.ch = 0
+		s.ch = eofCh
 	}
 }
 
@@ -44,16 +47,54 @@ func (s *Scanner) scanNumber() (Token, string) {
 	return INT, string(s.src[off:s.offset])
 }
 
+var (
+	specialInits      = []byte{'!', '$', '%', '&', '*', '/', ':', '<', '=', '>', '?', '^', '_', '~'}
+	specialSubseqents = []byte{'+', '-', '.', '@'}
+)
+
+func isDigit(ch byte) bool {
+	return '0' <= ch && ch <= '9'
+}
+
+func isLetter(ch byte) bool {
+	return 'a' <= ch && ch <= 'z'
+}
+
+func isInitial(ch byte) bool {
+	return ('a' <= ch && ch <= 'z') || bytes.LastIndexByte(specialInits, ch) >= 0
+}
+
+func (s *Scanner) scanIdentifier() string {
+	offs := s.offset
+	for isInitial(s.ch) || isDigit(s.ch) || bytes.LastIndexByte(specialSubseqents, s.ch) >= 0 {
+		s.next()
+	}
+	return string(s.src[offs:s.offset])
+}
+
 func (s *Scanner) Scan() (tok Token, lit string) {
 	s.skipSpaces()
 	ch := s.ch
-	if ch >= '0' && ch <= '9' {
-		return s.scanNumber()
-	}
-	if ch == 0 {
+	if ch == eofCh {
 		tok = EOF
 		return
 	}
-	log.Fatalf("Unknown character %c", ch)
+	if isDigit(ch) {
+		return s.scanNumber()
+	}
+	if isInitial(ch) {
+		lit = s.scanIdentifier()
+		tok = IDENT
+		return
+	}
+	switch ch {
+	case '(':
+		tok = LPAREN
+	case ')':
+		tok = RPAREN
+	default:
+		log.Fatalf("Unexpected token %c", ch)
+	}
+	return
 	return
 }

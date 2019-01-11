@@ -6,16 +6,32 @@ import (
 
 func TestScan(t *testing.T) {
 	var s Scanner
-	s.Init([]byte("  123 "))
-	token, lit := s.Scan()
-	if token != INT {
-		t.Fatalf("expected %d, but got %d", INT, token)
+	type expect struct {
+		tok Token
+		lit string
 	}
-	if lit != "123" {
-		t.Fatalf("expected %s, but got %s", "123", lit)
+	testcases := []struct {
+		src     []byte
+		expects []expect
+	}{
+		{
+			src: []byte(" 123 "),
+			expects: []expect{
+				{tok: INT, lit: "123"},
+				{tok: EOF, lit: ""},
+			},
+		},
 	}
-	token, _ = s.Scan()
-	if token != EOF {
-		t.Fatalf("expected %d, but got %d", EOF, token)
+	for _, tc := range testcases {
+		s.Init(tc.src)
+		for _, expect := range tc.expects {
+			tok, lit := s.Scan()
+			if tok != expect.tok {
+				t.Fatalf("expected %d, but got %d", expect.tok, tok)
+			}
+			if lit != expect.lit {
+				t.Fatalf("expected %s, but got %s", expect.lit, lit)
+			}
+		}
 	}
 }
