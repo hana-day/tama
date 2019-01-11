@@ -48,16 +48,12 @@ func (s *Scanner) scanNumber() (Token, string) {
 }
 
 var (
-	specialInits      = []byte{'!', '$', '%', '&', '*', '/', ':', '<', '=', '>', '?', '^', '_', '~'}
+	specialInits      = []byte{'!', '$', '%', '&', '*', '+', '-', '.', '/', ':', '<', '=', '>', '?', '@', '^', '_', '~'}
 	specialSubseqents = []byte{'+', '-', '.', '@'}
 )
 
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
-}
-
-func isLetter(ch byte) bool {
-	return 'a' <= ch && ch <= 'z'
 }
 
 func isInitial(ch byte) bool {
@@ -75,10 +71,6 @@ func (s *Scanner) scanIdentifier() string {
 func (s *Scanner) Scan() (tok Token, lit string) {
 	s.skipSpaces()
 	ch := s.ch
-	if ch == eofCh {
-		tok = EOF
-		return
-	}
 	if isDigit(ch) {
 		return s.scanNumber()
 	}
@@ -87,7 +79,10 @@ func (s *Scanner) Scan() (tok Token, lit string) {
 		tok = IDENT
 		return
 	}
+	s.next()
 	switch ch {
+	case eofCh:
+		tok = EOF
 	case '(':
 		tok = LPAREN
 	case ')':
@@ -95,6 +90,5 @@ func (s *Scanner) Scan() (tok Token, lit string) {
 	default:
 		log.Fatalf("Unexpected token %c", ch)
 	}
-	return
 	return
 }

@@ -21,16 +21,34 @@ func TestScan(t *testing.T) {
 				{tok: EOF, lit: ""},
 			},
 		},
+		{
+			src: []byte("set!"),
+			expects: []expect{
+				{tok: IDENT, lit: "set!"},
+				{tok: EOF, lit: ""},
+			},
+		},
+		{
+			src: []byte("(+ 1 2)"),
+			expects: []expect{
+				{tok: LPAREN, lit: ""},
+				{tok: IDENT, lit: "+"},
+				{tok: INT, lit: "1"},
+				{tok: INT, lit: "2"},
+				{tok: RPAREN, lit: ""},
+				{tok: EOF, lit: ""},
+			},
+		},
 	}
-	for _, tc := range testcases {
+	for i, tc := range testcases {
 		s.Init(tc.src)
-		for _, expect := range tc.expects {
+		for j, expect := range tc.expects {
 			tok, lit := s.Scan()
 			if tok != expect.tok {
-				t.Fatalf("expected %d, but got %d", expect.tok, tok)
+				t.Fatalf("case %d-%d: expected %d, but got %d", i, j, expect.tok, tok)
 			}
 			if lit != expect.lit {
-				t.Fatalf("expected %s, but got %s", expect.lit, lit)
+				t.Fatalf("case %d-%d: expected %s, but got %s", i, j, expect.lit, lit)
 			}
 		}
 	}

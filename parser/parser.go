@@ -39,10 +39,28 @@ func (p *Parser) parseInt() Expr {
 	}
 }
 
+func (p *Parser) parseCall() Expr {
+	if p.tok != scanner.IDENT {
+		log.Fatalf("Unexpected token %d", p.tok)
+	}
+	expr := &CallExpr{Func: &Ident{Name: p.lit}}
+	p.next()
+	for p.tok != scanner.RPAREN {
+		expr.Args = append(expr.Args, p.parseExpr())
+	}
+	p.next()
+	return expr
+}
+
 func (p *Parser) parseExpr() (expr Expr) {
 	if p.tok == scanner.INT {
 		expr = p.parseInt()
 		p.next()
+		return
+	}
+	if p.tok == scanner.LPAREN {
+		p.next()
+		expr = p.parseCall()
 		return
 	}
 	log.Fatalf("Unexpected token %d", p.tok)
