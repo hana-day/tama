@@ -25,3 +25,21 @@ func TestCompileExprs(t *testing.T) {
 		t.Fatalf("expected %d, but got %d", RETURN, opcode)
 	}
 }
+
+func TestCompileIdent(t *testing.T) {
+	c := &Compiler{
+		Proto: newClosureProto(),
+	}
+	c.compileIdent(&parser.Ident{
+		Name: "test",
+	})
+	if len(c.Proto.Insts) != 2 {
+		t.Fatalf("expected %d, but got %d", 2, len(c.Proto.Insts))
+	}
+	if opcode := GetOpCode(c.Proto.Insts[0]); opcode != LOADK {
+		t.Fatalf("expected %d, but got %d", LOADK, opcode)
+	}
+	if opcode := GetOpCode(c.Proto.Insts[1]); opcode != GETGLOBAL {
+		t.Fatalf("expected %d, but got %d", GETGLOBAL, opcode)
+	}
+}

@@ -81,12 +81,22 @@ func (c *Compiler) compilePrimitive(prim *parser.Primitive) *Reg {
 	return reg
 }
 
+func (c *Compiler) compileIdent(ident *parser.Ident) *Reg {
+	r1 := c.newReg()
+	c.addABx(LOADK, r1.N, c.constIndex(types.String(ident.Name)))
+	r2 := c.newReg()
+	c.addABx(GETGLOBAL, r2.N, r1.N)
+	return r2
+}
+
 func (c *Compiler) compileExpr(expr parser.Expr) *Reg {
-	switch e := expr.(type) {
+	switch ex := expr.(type) {
 	case *parser.Primitive:
-		return c.compilePrimitive(e)
+		return c.compilePrimitive(ex)
+	case *parser.Ident:
+		return c.compileIdent(ex)
 	default:
-		log.Fatalf("Unknown expression %v", e)
+		log.Fatalf("Unknown expression %v", ex)
 	}
 	return nil
 }

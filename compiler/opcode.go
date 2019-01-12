@@ -7,6 +7,7 @@ package compiler
 const (
 	RETURN int = iota
 	LOADK
+	GETGLOBAL
 )
 
 func GetOpCode(inst uint32) int {
