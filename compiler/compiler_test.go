@@ -14,7 +14,7 @@ func TestCompileExprs(t *testing.T) {
 		},
 	}
 	cl, _ := Compile(exprs)
-	insts := cl.Insts
+	insts := cl.Proto.Insts
 	if len(insts) != 2 {
 		t.Fatalf("expected %d, but got %d", 2, len(insts))
 	}

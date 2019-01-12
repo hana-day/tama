@@ -42,7 +42,7 @@ func (s *State) call(nargs int) error {
 	if !ok {
 		return fmt.Errorf("Function is not loaded")
 	}
-	ci := &CallInfo{Cl: cl, Base: s.Base, Top: cl.MaxStackSize + s.Base}
+	ci := &CallInfo{Cl: cl, Base: s.Base, Top: cl.Proto.MaxStackSize + s.Base}
 	s.CallInfos.Push(ci)
 	runVM(s)
 	return nil

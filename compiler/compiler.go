@@ -4,29 +4,53 @@ import (
 	"github.com/hyusuk/tama/parser"
 	"github.com/hyusuk/tama/scanner"
 	"github.com/hyusuk/tama/types"
+	"log"
 	"strconv"
 )
 
-type Closure struct {
+type ClosureProto struct {
 	Insts        []uint32
 	Consts       []types.Value
 	MaxStackSize int
 }
 
-func newClosure() *Closure {
-	return &Closure{
+func newClosureProto() *ClosureProto {
+	return &ClosureProto{
 		Insts:        []uint32{},
 		Consts:       []types.Value{},
 		MaxStackSize: 256,
 	}
 }
 
+type Closure struct {
+	Proto *ClosureProto
+}
+
+func newClosure(proto *ClosureProto) *Closure {
+	return &Closure{
+		Proto: proto,
+	}
+}
+
 type Compiler struct {
-	Cl *Closure
+	Proto *ClosureProto // current function header
+	nreg  int           // number of registers
+}
+
+type Reg struct {
+	N int // register number
+}
+
+func (c *Compiler) newReg() *Reg {
+	reg := &Reg{
+		N: c.nreg,
+	}
+	c.nreg++
+	return reg
 }
 
 func (c *Compiler) add(inst uint32) {
-	c.Cl.Insts = append(c.Cl.Insts, inst)
+	c.Proto.Insts = append(c.Proto.Insts, inst)
 }
 
 func (c *Compiler) addABx(op int, a int, bx int) {
@@ -38,28 +62,33 @@ func (co *Compiler) addABC(op int, a int, b int, c int) {
 }
 
 func (c *Compiler) constIndex(v types.Value) int {
-	for i, cs := range c.Cl.Consts {
+	for i, cs := range c.Proto.Consts {
 		if cs == v {
 			return i
 		}
 	}
-	c.Cl.Consts = append(c.Cl.Consts, v)
-	return len(c.Cl.Consts) - 1
+	c.Proto.Consts = append(c.Proto.Consts, v)
+	return len(c.Proto.Consts) - 1
 }
 
-func (c *Compiler) compilePrimitive(prim *parser.Primitive) {
-	reg := 0
+func (c *Compiler) compilePrimitive(prim *parser.Primitive) *Reg {
+	reg := c.newReg()
 	if prim.Kind == scanner.INT {
 		f, _ := strconv.ParseFloat(prim.Value, 64)
 		v := types.Number(f)
-		c.addABx(LOADK, reg, c.constIndex(v))
+		c.addABx(LOADK, reg.N, c.constIndex(v))
 	}
+	return reg
 }
 
-func (c *Compiler) compileExpr(expr parser.Expr) {
-	if prim, ok := expr.(*parser.Primitive); ok {
-		c.compilePrimitive(prim)
+func (c *Compiler) compileExpr(expr parser.Expr) *Reg {
+	switch e := expr.(type) {
+	case *parser.Primitive:
+		return c.compilePrimitive(e)
+	default:
+		log.Fatalf("Unknown expression %v", e)
 	}
+	return nil
 }
 
 func (c *Compiler) compileExprs(exprs []parser.Expr) {
@@ -71,8 +100,8 @@ func (c *Compiler) compileExprs(exprs []parser.Expr) {
 
 func Compile(exprs []parser.Expr) (*Closure, error) {
 	c := Compiler{
-		Cl: newClosure(),
+		Proto: newClosureProto(),
 	}
 	c.compileExprs(exprs)
-	return c.Cl, nil
+	return newClosure(c.Proto), nil
 }
