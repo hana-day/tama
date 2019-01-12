@@ -33,10 +33,18 @@ func (p *Parser) expect(tok scanner.Token) {
 }
 
 func (p *Parser) parseInt() Expr {
-	return &Primitive{
+	expr := &Primitive{
 		Kind:  p.tok,
 		Value: p.lit,
 	}
+	p.next()
+	return expr
+}
+
+func (p *Parser) parseIdent() Expr {
+	expr := &Ident{Name: p.lit}
+	p.next()
+	return expr
 }
 
 func (p *Parser) parseCall() Expr {
@@ -55,12 +63,15 @@ func (p *Parser) parseCall() Expr {
 func (p *Parser) parseExpr() (expr Expr) {
 	if p.tok == scanner.INT {
 		expr = p.parseInt()
-		p.next()
 		return
 	}
 	if p.tok == scanner.LPAREN {
 		p.next()
 		expr = p.parseCall()
+		return
+	}
+	if p.tok == scanner.IDENT {
+		expr = p.parseIdent()
 		return
 	}
 	log.Fatalf("Unexpected token %d", p.tok)

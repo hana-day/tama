@@ -1,20 +1,19 @@
 package tama
 
-import (
-	"github.com/hyusuk/tama/compiler"
-)
-
 func runVM(s *State) {
 	ci, _ := s.CallInfos.Top().(*CallInfo)
 	cl := ci.Cl
 	for _, inst := range cl.Proto.Insts {
-		ra := ci.Base + compiler.GetArgA(inst)
-		switch compiler.GetOpCode(inst) {
-		case compiler.LOADK:
-			bx := compiler.GetArgBx(inst)
+		ra := ci.Base + GetArgA(inst)
+		switch GetOpCode(inst) {
+		case LOADK:
+			bx := GetArgBx(inst)
 			s.CallStack.Set(ra, cl.Proto.Consts[bx])
-		case compiler.RETURN:
-			b := compiler.GetArgB(inst)
+		case GETGLOBAL:
+			bx := GetArgBx(inst)
+			s.CallStack.Set(ra, s.Global[cl.Proto.Consts[bx].String()])
+		case RETURN:
+			b := GetArgB(inst)
 			if b != 0 {
 				s.CallStack.SetSp(ra + b - 1)
 			}

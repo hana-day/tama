@@ -1,5 +1,7 @@
 package tama
 
+import "fmt"
+
 type valueType interface{}
 
 type Element struct {
@@ -75,5 +77,12 @@ func (s *Stack) Set(i int, v valueType) {
 	s.arr[i] = &Element{
 		Value: v,
 		stack: s,
+	}
+}
+
+func (s *Stack) dump() {
+	fmt.Printf("SP = %d, LEN = %d\n", s.sp, s.len)
+	for i := 0; i < s.sp; i++ {
+		fmt.Printf("%d => %v\n", i, s.arr[i])
 	}
 }
