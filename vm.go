@@ -25,7 +25,6 @@ func runVM(s *State) {
 			base = s.Base
 		case RETURN:
 			b := GetArgB(inst)
-			s.CallStack.dump()
 			if b != 0 {
 				s.CallStack.SetSp(ra + b - 1)
 			}

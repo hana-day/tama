@@ -7,9 +7,10 @@ func (s *State) OpenBase() {
 }
 
 func fnAdd(s *State) {
-	// number of arguments
-	a1 := s.CallStack.Pop().(Number)
-	a2 := s.CallStack.Pop().(Number)
-	var result Number = a1 + a2
+	nargs := s.CallStack.Pop().(Number)
+	var result Number = 0
+	for i := 0; i < int(nargs); i++ {
+		result += s.CallStack.Pop().(Number)
+	}
 	s.CallStack.Push(result)
 }

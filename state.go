@@ -44,6 +44,9 @@ func (s *State) precall(clIndex int) error {
 	if cl.isGo {
 		ci := &CallInfo{Base: s.Base}
 		s.CallInfos.Push(ci)
+		nargs := Number(s.CallStack.Sp() - clIndex - 1)
+		s.CallStack.Push(nargs)
+
 		cl.Fn(s)
 		s.postcall(clIndex)
 		return nil

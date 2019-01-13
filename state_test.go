@@ -34,7 +34,7 @@ func TestExecuteString(t *testing.T) {
 
 	s = NewState()
 	s.OpenBase()
-	err = s.ExecString("(+ 1 2)")
+	err = s.ExecString("(+ 1 2 3 4)")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestExecuteString(t *testing.T) {
 	if !ok {
 		t.Fatalf("Invalid call stack top")
 	}
-	if num.String() != "3" {
+	if num.String() != "10" {
 		t.Fatalf("expected %s, but got %s", "3", num.String())
 	}
 }
