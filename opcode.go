@@ -8,6 +8,8 @@ const (
 	RETURN int = iota
 	LOADK
 	GETGLOBAL
+	MOVE
+	CALL
 )
 
 func GetOpCode(inst uint32) int {

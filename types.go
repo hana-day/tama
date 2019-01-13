@@ -40,7 +40,7 @@ type ClosureProto struct {
 	MaxStackSize int
 }
 
-type goFunc func(s *State) int
+type goFunc func(s *State)
 
 type Closure struct {
 	isGo bool

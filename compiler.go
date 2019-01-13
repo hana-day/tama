@@ -64,22 +64,46 @@ func (c *Compiler) compileIdent(ident *parser.Ident) *Reg {
 	return r2
 }
 
+func (c *Compiler) compileCallExpr(expr *parser.CallExpr) *Reg {
+	ident, ok := expr.Func.(*parser.Ident)
+	if !ok {
+		log.Fatalf("Invalid function name")
+	}
+	r1 := c.compileExpr(ident)
+	argRegs := make([]*Reg, len(expr.Args))
+	for i, _ := range expr.Args {
+		argRegs[i] = c.newReg()
+	}
+	var r *Reg
+	for i, arg := range expr.Args {
+		r = c.compileExpr(arg)
+		c.addABC(MOVE, argRegs[i].N, r.N, 0)
+	}
+	// Always return one value
+	c.addABC(CALL, r1.N, 1+len(expr.Args), 2)
+	return r1
+}
+
 func (c *Compiler) compileExpr(expr parser.Expr) *Reg {
 	switch ex := expr.(type) {
 	case *parser.Primitive:
 		return c.compilePrimitive(ex)
 	case *parser.Ident:
 		return c.compileIdent(ex)
+	case *parser.CallExpr:
+		return c.compileCallExpr(ex)
 	default:
 		log.Fatalf("Unknown expression %v", ex)
 	}
 	return nil
 }
 
-func (c *Compiler) compileExprs(exprs []parser.Expr) {
-	for _, expr := range exprs {
-		c.compileExpr(expr)
+func (c *Compiler) compileExprs(exprs []parser.Expr) []*Reg {
+	regs := make([]*Reg, len(exprs))
+	for i, expr := range exprs {
+		regs[i] = c.compileExpr(expr)
 	}
+	return regs
 }
 
 func newClosureProto() *ClosureProto {
@@ -95,9 +119,9 @@ func Compile(exprs []parser.Expr) (*Closure, error) {
 		Proto: newClosureProto(),
 		nreg:  0,
 	}
-	c.compileExprs(exprs)
-	rn := c.nreg - 1
-	c.addABC(RETURN, rn, 2, 0)
+	regs := c.compileExprs(exprs)
+	lastReg := regs[len(regs)-1]
+	c.addABC(RETURN, lastReg.N, 2, 0)
 
 	cl := NewScmClosure()
 	cl.Proto = c.Proto

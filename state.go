@@ -35,15 +35,38 @@ func (s *State) LoadString(source string) (*Closure, error) {
 	return Compile(f.Exprs)
 }
 
-func (s *State) call(nargs int) error {
-	clIndex := s.CallStack.Sp() - nargs - 1
+func (s *State) precall(clIndex int) error {
 	s.Base = clIndex + 1
 	cl, ok := s.CallStack.Get(clIndex).(*Closure)
 	if !ok {
 		return fmt.Errorf("Function is not loaded")
 	}
-	ci := &CallInfo{Cl: cl, Base: s.Base}
-	s.CallInfos.Push(ci)
+	if cl.isGo {
+		ci := &CallInfo{Base: s.Base}
+		s.CallInfos.Push(ci)
+		cl.Fn(s)
+		s.postcall(clIndex)
+		return nil
+	} else {
+		ci := &CallInfo{Cl: cl, Base: s.Base}
+		s.CallInfos.Push(ci)
+		return nil
+	}
+}
+
+func (s *State) postcall(resultSp int) {
+	_ = s.CallInfos.Pop() // pop current call info
+	prevCi := s.CallInfos.Pop().(*CallInfo)
+	s.Base = prevCi.Base
+	result := s.CallStack.Pop()
+	s.CallStack.Set(resultSp, result)
+}
+
+func (s *State) call(nargs int) error {
+	clIndex := s.CallStack.Sp() - nargs - 1
+	if err := s.precall(clIndex); err != nil {
+		return err
+	}
 	runVM(s)
 	return nil
 }

@@ -6,12 +6,10 @@ func (s *State) OpenBase() {
 	s.Global["+"] = cl
 }
 
-func fnAdd(s *State) int {
+func fnAdd(s *State) {
 	// number of arguments
-	_ = s.CallStack.Pop().(Number)
 	a1 := s.CallStack.Pop().(Number)
 	a2 := s.CallStack.Pop().(Number)
 	var result Number = a1 + a2
 	s.CallStack.Push(result)
-	return 0
 }
