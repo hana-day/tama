@@ -65,7 +65,7 @@ func (s *State) precall(clIndex int) error {
 
 func (s *State) postcall(resultSp int) {
 	_ = s.CallInfos.Pop() // pop current call info
-	prevCi := s.CallInfos.Pop().(*CallInfo)
+	prevCi := s.CallInfos.Top().(*CallInfo)
 	s.Base = prevCi.Base
 	result := s.CallStack.Pop()
 	s.CallStack.Set(resultSp, result)

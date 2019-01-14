@@ -35,7 +35,7 @@ func TestExecuteString(t *testing.T) {
 
 	s = NewState()
 	s.OpenBase()
-	err = s.ExecString("(+ 1 2 3 4)")
+	err = s.ExecString("(+ 1 2 3) (+ 1 2 3 4)")
 	if err != nil {
 		t.Fatal(err)
 	}

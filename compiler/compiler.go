@@ -52,10 +52,8 @@ func (c *Compiler) compileNumber(num types.Number) *Reg {
 
 func (c *Compiler) compileSymbol(sym *types.Symbol) *Reg {
 	r1 := c.newReg()
-	c.addABx(LOADK, r1.N, c.constIndex(types.String(sym.Name)))
-	r2 := c.newReg()
-	c.addABx(GETGLOBAL, r2.N, r1.N)
-	return r2
+	c.addABx(GETGLOBAL, r1.N, c.constIndex(types.String(sym.Name)))
+	return r1
 }
 
 func (c *Compiler) compilePair(pair *types.Pair) *Reg {
