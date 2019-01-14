@@ -4,7 +4,7 @@ import "testing"
 
 func TestPairString(t *testing.T) {
 	testcases := []struct {
-		object Value
+		object Object
 		str    string
 	}{
 		{Cons(Number(1), Number(2)), "(1 . 2)"},

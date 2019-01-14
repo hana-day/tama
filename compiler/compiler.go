@@ -37,7 +37,7 @@ func (co *Compiler) addABC(op int, a int, b int, c int) {
 	co.add(CreateABC(op, a, b, c))
 }
 
-func (c *Compiler) constIndex(v types.Value) int {
+func (c *Compiler) constIndex(v types.Object) int {
 	for i, cs := range c.Proto.Consts {
 		if cs == v {
 			return i
@@ -110,7 +110,7 @@ func (c *Compiler) compileExprs(exprs []parser.Expr) []*Reg {
 func newClosureProto() *types.ClosureProto {
 	return &types.ClosureProto{
 		Insts:        []uint32{},
-		Consts:       []types.Value{},
+		Consts:       []types.Object{},
 		MaxStackSize: 256,
 	}
 }

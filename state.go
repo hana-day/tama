@@ -19,14 +19,14 @@ type State struct {
 	CallStack *types.Stack
 	CallInfos *types.Stack
 	Base      int
-	Global    map[string]types.Value
+	Global    map[string]types.Object
 }
 
 func NewState() *State {
 	return &State{
 		CallStack: types.NewStack(DefaultStackSize),
 		CallInfos: types.NewStack(DefaultStackSize),
-		Global:    map[string]types.Value{},
+		Global:    map[string]types.Object{},
 	}
 }
 

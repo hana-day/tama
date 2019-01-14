@@ -4,10 +4,10 @@ import (
 	"fmt"
 )
 
-type ValueType int
+type ObjectType int
 
 const (
-	TyNumber ValueType = iota
+	TyNumber ObjectType = iota
 	TyString
 	TyClosure
 	TyNil
@@ -15,9 +15,9 @@ const (
 	TyPair
 )
 
-type Value interface {
+type Object interface {
 	String() string
-	Type() ValueType
+	Type() ObjectType
 }
 
 type (
@@ -37,8 +37,8 @@ type (
 		Name String
 	}
 	Pair struct {
-		Car Value
-		Cdr Value
+		Car Object
+		Cdr Object
 	}
 )
 
@@ -46,19 +46,19 @@ func (num Number) String() string {
 	return fmt.Sprint(float64(num))
 }
 
-func (num Number) Type() ValueType { return TyNumber }
+func (num Number) Type() ObjectType { return TyNumber }
 
 func (s String) String() string {
 	return string(s)
 }
 
-func (s String) Type() ValueType {
+func (s String) Type() ObjectType {
 	return TyString
 }
 
 type ClosureProto struct {
 	Insts        []uint32
-	Consts       []Value
+	Consts       []Object
 	MaxStackSize int
 }
 
@@ -66,7 +66,7 @@ func (cl *Closure) String() string {
 	return "closure"
 }
 
-func (cl *Closure) Type() ValueType {
+func (cl *Closure) Type() ObjectType {
 	return TyClosure
 }
 
@@ -90,7 +90,7 @@ func (n *NilType) String() string {
 	return "()"
 }
 
-func (n *NilType) Type() ValueType {
+func (n *NilType) Type() ObjectType {
 	return TyNil
 }
 
@@ -100,22 +100,22 @@ func (p *Pair) String() string {
 	return fmt.Sprintf("(%s . %s)", p.Car.String(), p.Cdr.String())
 }
 
-func (p *Pair) Type() ValueType {
+func (p *Pair) Type() ObjectType {
 	return TyPair
 }
 
-func (s *Symbol) Type() ValueType {
+func (s *Symbol) Type() ObjectType {
 	return TySymbol
 }
 
-func Cons(car Value, cdr Value) *Pair {
+func Cons(car Object, cdr Object) *Pair {
 	return &Pair{
 		Car: car,
 		Cdr: cdr,
 	}
 }
 
-func Car(v Value) (Value, error) {
+func Car(v Object) (Object, error) {
 	p, ok := v.(*Pair)
 	if !ok {
 		return nil, fmt.Errorf("%v is not a pair", v)
@@ -123,7 +123,7 @@ func Car(v Value) (Value, error) {
 	return p.Car, nil
 }
 
-func Cdr(v Value) (Value, error) {
+func Cdr(v Object) (Object, error) {
 	p, ok := v.(*Pair)
 	if !ok {
 		return nil, fmt.Errorf("%v is not a pair", v)
@@ -131,7 +131,7 @@ func Cdr(v Value) (Value, error) {
 	return p.Cdr, nil
 }
 
-func List(args ...Value) Value {
+func List(args ...Object) Object {
 	if len(args) == 0 {
 		return Nil
 	}
