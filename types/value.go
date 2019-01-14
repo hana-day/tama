@@ -114,3 +114,29 @@ func Cons(car Value, cdr Value) *Pair {
 		Cdr: cdr,
 	}
 }
+
+func Car(v Value) (Value, error) {
+	p, ok := v.(*Pair)
+	if !ok {
+		return nil, fmt.Errorf("%v is not a pair", v)
+	}
+	return p.Car, nil
+}
+
+func Cdr(v Value) (Value, error) {
+	p, ok := v.(*Pair)
+	if !ok {
+		return nil, fmt.Errorf("%v is not a pair", v)
+	}
+	return p.Cdr, nil
+}
+
+func List(args ...Value) Value {
+	if len(args) == 0 {
+		return Nil
+	}
+	return &Pair{
+		Car: args[0],
+		Cdr: List(args[1:len(args)]...),
+	}
+}

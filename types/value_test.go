@@ -19,3 +19,24 @@ func TestPairString(t *testing.T) {
 	}
 
 }
+
+func TestList(t *testing.T) {
+	if List().Type() != TyNil {
+		t.Fatalf("expected nil")
+	}
+
+	l, ok := List(Number(1), Number(2)).(*Pair)
+	if !ok {
+		t.Fatalf("expected pair")
+	}
+	cdr, _ := Cdr(l)
+	cdar, _ := Car(cdr)
+	cddr, _ := Cdr(cdr)
+	if cdar.String() != "2" {
+		t.Fatalf("expected %v, but got %v", "2", cdar.String())
+	}
+	if cddr.Type() != TyNil {
+		t.Fatalf("expected nil")
+	}
+
+}
