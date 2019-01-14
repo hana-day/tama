@@ -1,4 +1,4 @@
-package tama
+package compiler
 
 import (
 	"github.com/hyusuk/tama/parser"

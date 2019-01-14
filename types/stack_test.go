@@ -1,4 +1,4 @@
-package tama
+package types
 
 import (
 	"testing"

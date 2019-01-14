@@ -1,4 +1,4 @@
-package tama
+package types
 
 import "fmt"
 
@@ -80,7 +80,7 @@ func (s *Stack) Set(i int, v valueType) {
 	}
 }
 
-func (s *Stack) dump() {
+func (s *Stack) Dump() {
 	fmt.Printf("SP = %d, LEN = %d\n", s.sp, s.len)
 	for i := 0; i < s.sp; i++ {
 		fmt.Printf("%d => %v\n", i, s.arr[i])

@@ -2,52 +2,58 @@ package tama
 
 import (
 	"fmt"
+	"github.com/hyusuk/tama/compiler"
 	"github.com/hyusuk/tama/parser"
+	"github.com/hyusuk/tama/types"
 )
 
 var DefaultStackSize = 256 * 20
 
 type CallInfo struct {
 	Base int
-	Cl   *Closure
+	Cl   *types.Closure
 }
 
 type State struct {
 	// call stack
-	CallStack *Stack
-	CallInfos *Stack
+	CallStack *types.Stack
+	CallInfos *types.Stack
 	Base      int
-	Global    map[string]Value
+	Global    map[string]types.Value
 }
 
 func NewState() *State {
 	return &State{
-		CallStack: NewStack(DefaultStackSize),
-		CallInfos: NewStack(DefaultStackSize),
-		Global:    map[string]Value{},
+		CallStack: types.NewStack(DefaultStackSize),
+		CallInfos: types.NewStack(DefaultStackSize),
+		Global:    map[string]types.Value{},
 	}
 }
 
-func (s *State) LoadString(source string) (*Closure, error) {
+func (s *State) LoadString(source string) (*types.Closure, error) {
 	p := &parser.Parser{}
 	p.Init([]byte(source))
 	f := p.ParseFile()
-	return Compile(f.Exprs)
+	return compiler.Compile(f.Exprs)
 }
 
 func (s *State) precall(clIndex int) error {
 	s.Base = clIndex + 1
-	cl, ok := s.CallStack.Get(clIndex).(*Closure)
+	cl, ok := s.CallStack.Get(clIndex).(*types.Closure)
 	if !ok {
 		return fmt.Errorf("Function is not loaded")
 	}
-	if cl.isGo {
+	if cl.IsGo {
 		ci := &CallInfo{Base: s.Base}
 		s.CallInfos.Push(ci)
-		nargs := Number(s.CallStack.Sp() - clIndex - 1)
+		nargs := types.Number(s.CallStack.Sp() - clIndex - 1)
 		s.CallStack.Push(nargs)
 
-		cl.Fn(s)
+		fn, ok := cl.Fn.(func(s *State))
+		if !ok {
+			return fmt.Errorf("invalid function %v", cl.Fn)
+		}
+		fn(s)
 		s.postcall(clIndex)
 		return nil
 	} else {

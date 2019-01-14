@@ -1,4 +1,4 @@
-package tama
+package types
 
 import (
 	"fmt"
@@ -40,16 +40,14 @@ type ClosureProto struct {
 	MaxStackSize int
 }
 
-type goFunc func(s *State)
-
 type Closure struct {
-	isGo bool
+	IsGo bool
 
 	// scheme closure only
 	Proto *ClosureProto
 
 	// go closure only
-	Fn goFunc
+	Fn interface{}
 }
 
 func (cl *Closure) String() string {
@@ -62,12 +60,12 @@ func (cl *Closure) Type() ValueType {
 
 func NewScmClosure() *Closure {
 	return &Closure{
-		isGo: false,
+		IsGo: false,
 	}
 }
 
 func NewGoClosure() *Closure {
 	return &Closure{
-		isGo: true,
+		IsGo: true,
 	}
 }

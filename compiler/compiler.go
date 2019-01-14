@@ -1,15 +1,16 @@
-package tama
+package compiler
 
 import (
 	"github.com/hyusuk/tama/parser"
 	"github.com/hyusuk/tama/scanner"
+	"github.com/hyusuk/tama/types"
 	"log"
 	"strconv"
 )
 
 type Compiler struct {
-	Proto *ClosureProto // current function header
-	nreg  int           // number of registers
+	Proto *types.ClosureProto // current function header
+	nreg  int                 // number of registers
 }
 
 type Reg struct {
@@ -36,7 +37,7 @@ func (co *Compiler) addABC(op int, a int, b int, c int) {
 	co.add(CreateABC(op, a, b, c))
 }
 
-func (c *Compiler) constIndex(v Value) int {
+func (c *Compiler) constIndex(v types.Value) int {
 	for i, cs := range c.Proto.Consts {
 		if cs == v {
 			return i
@@ -50,7 +51,7 @@ func (c *Compiler) compilePrimitive(prim *parser.Primitive) *Reg {
 	reg := c.newReg()
 	if prim.Kind == scanner.INT {
 		f, _ := strconv.ParseFloat(prim.Value, 64)
-		v := Number(f)
+		v := types.Number(f)
 		c.addABx(LOADK, reg.N, c.constIndex(v))
 	}
 	return reg
@@ -58,7 +59,7 @@ func (c *Compiler) compilePrimitive(prim *parser.Primitive) *Reg {
 
 func (c *Compiler) compileIdent(ident *parser.Ident) *Reg {
 	r1 := c.newReg()
-	c.addABx(LOADK, r1.N, c.constIndex(String(ident.Name)))
+	c.addABx(LOADK, r1.N, c.constIndex(types.String(ident.Name)))
 	r2 := c.newReg()
 	c.addABx(GETGLOBAL, r2.N, r1.N)
 	return r2
@@ -106,15 +107,15 @@ func (c *Compiler) compileExprs(exprs []parser.Expr) []*Reg {
 	return regs
 }
 
-func newClosureProto() *ClosureProto {
-	return &ClosureProto{
+func newClosureProto() *types.ClosureProto {
+	return &types.ClosureProto{
 		Insts:        []uint32{},
-		Consts:       []Value{},
+		Consts:       []types.Value{},
 		MaxStackSize: 256,
 	}
 }
 
-func Compile(exprs []parser.Expr) (*Closure, error) {
+func Compile(exprs []parser.Expr) (*types.Closure, error) {
 	c := Compiler{
 		Proto: newClosureProto(),
 		nreg:  0,
@@ -123,7 +124,7 @@ func Compile(exprs []parser.Expr) (*Closure, error) {
 	lastReg := regs[len(regs)-1]
 	c.addABC(RETURN, lastReg.N, 2, 0)
 
-	cl := NewScmClosure()
+	cl := types.NewScmClosure()
 	cl.Proto = c.Proto
 	return cl, nil
 }

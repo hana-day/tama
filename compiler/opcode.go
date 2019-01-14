@@ -2,7 +2,7 @@
 // The definition of opcodes is almost same with Lua 5.1.4's opcodes.
 // See http://underpop.free.fr/l/lua/docs/a-no-frills-introduction-to-lua-5.1-vm-instructions.pdf
 
-package tama
+package compiler
 
 const (
 	RETURN int = iota

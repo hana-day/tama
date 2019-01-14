@@ -1,6 +1,7 @@
 package tama
 
 import (
+	"github.com/hyusuk/tama/types"
 	"testing"
 )
 
@@ -10,7 +11,7 @@ func TestExecuteString(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	num, ok := s.CallStack.Top().(Number)
+	num, ok := s.CallStack.Top().(types.Number)
 	if !ok {
 		t.Fatalf("Invalid call stack top")
 	}
@@ -19,12 +20,12 @@ func TestExecuteString(t *testing.T) {
 	}
 
 	s = NewState()
-	s.Global["test"] = Number(2)
+	s.Global["test"] = types.Number(2)
 	err = s.ExecString("test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	num, ok = s.CallStack.Top().(Number)
+	num, ok = s.CallStack.Top().(types.Number)
 	if !ok {
 		t.Fatalf("Invalid call stack top")
 	}
@@ -38,11 +39,11 @@ func TestExecuteString(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	num, ok = s.CallStack.Top().(Number)
+	num, ok = s.CallStack.Top().(types.Number)
 	if !ok {
 		t.Fatalf("Invalid call stack top")
 	}
 	if num.String() != "10" {
-		t.Fatalf("expected %s, but got %s", "3", num.String())
+		t.Fatalf("expected %s, but got %s", "10", num.String())
 	}
 }
