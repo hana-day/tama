@@ -10,6 +10,9 @@ const (
 	TyNumber ValueType = iota
 	TyString
 	TyClosure
+	TyNil
+	TySymbol
+	TyPair
 )
 
 type Value interface {
@@ -17,8 +20,27 @@ type Value interface {
 	Type() ValueType
 }
 
-type Number float64
-type String string
+type (
+	Number  float64
+	String  string
+	Closure struct {
+		IsGo bool
+
+		// scheme closure only
+		Proto *ClosureProto
+
+		// go closure only
+		Fn interface{}
+	}
+	NilType struct{}
+	Symbol  struct {
+		Name String
+	}
+	Pair struct {
+		Car Value
+		Cdr Value
+	}
+)
 
 func (num Number) String() string {
 	return fmt.Sprint(float64(num))
@@ -40,16 +62,6 @@ type ClosureProto struct {
 	MaxStackSize int
 }
 
-type Closure struct {
-	IsGo bool
-
-	// scheme closure only
-	Proto *ClosureProto
-
-	// go closure only
-	Fn interface{}
-}
-
 func (cl *Closure) String() string {
 	return "closure"
 }
@@ -67,5 +79,38 @@ func NewScmClosure() *Closure {
 func NewGoClosure() *Closure {
 	return &Closure{
 		IsGo: true,
+	}
+}
+
+func (s *Symbol) String() string {
+	return s.Name.String()
+}
+
+func (n *NilType) String() string {
+	return "()"
+}
+
+func (n *NilType) Type() ValueType {
+	return TyNil
+}
+
+var Nil = &NilType{}
+
+func (p *Pair) String() string {
+	return fmt.Sprintf("(%s . %s)", p.Car.String(), p.Cdr.String())
+}
+
+func (p *Pair) Type() ValueType {
+	return TyPair
+}
+
+func (s *Symbol) Type() ValueType {
+	return TySymbol
+}
+
+func Cons(car Value, cdr Value) *Pair {
+	return &Pair{
+		Car: car,
+		Cdr: cdr,
 	}
 }
