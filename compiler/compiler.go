@@ -1,11 +1,8 @@
 package compiler
 
 import (
-	"github.com/hyusuk/tama/parser"
-	"github.com/hyusuk/tama/scanner"
 	"github.com/hyusuk/tama/types"
 	"log"
-	"strconv"
 )
 
 type Compiler struct {
@@ -47,62 +44,62 @@ func (c *Compiler) constIndex(v types.Object) int {
 	return len(c.Proto.Consts) - 1
 }
 
-func (c *Compiler) compilePrimitive(prim *parser.Primitive) *Reg {
+func (c *Compiler) compileNumber(num types.Number) *Reg {
 	reg := c.newReg()
-	if prim.Kind == scanner.INT {
-		f, _ := strconv.ParseFloat(prim.Value, 64)
-		v := types.Number(f)
-		c.addABx(LOADK, reg.N, c.constIndex(v))
-	}
+	c.addABx(LOADK, reg.N, c.constIndex(num))
 	return reg
 }
 
-func (c *Compiler) compileIdent(ident *parser.Ident) *Reg {
+func (c *Compiler) compileSymbol(sym *types.Symbol) *Reg {
 	r1 := c.newReg()
-	c.addABx(LOADK, r1.N, c.constIndex(types.String(ident.Name)))
+	c.addABx(LOADK, r1.N, c.constIndex(types.String(sym.Name)))
 	r2 := c.newReg()
 	c.addABx(GETGLOBAL, r2.N, r1.N)
 	return r2
 }
 
-func (c *Compiler) compileCallExpr(expr *parser.CallExpr) *Reg {
-	ident, ok := expr.Func.(*parser.Ident)
+func (c *Compiler) compilePair(pair *types.Pair) *Reg {
+	v, _ := types.Car(pair)
+	procName, ok := v.(*types.Symbol)
 	if !ok {
 		log.Fatalf("Invalid function name")
 	}
-	r1 := c.compileExpr(ident)
-	argRegs := make([]*Reg, len(expr.Args))
-	for i, _ := range expr.Args {
+	r1 := c.compileSymbol(procName)
+	cdr, _ := types.Cdr(pair)
+	args := cdr.(*types.Pair)
+	argsArr := args.ListToArray()
+	argRegs := make([]*Reg, len(argsArr))
+	for i := 0; i < len(argsArr); i++ {
 		argRegs[i] = c.newReg()
 	}
 	var r *Reg
-	for i, arg := range expr.Args {
-		r = c.compileExpr(arg)
+	for i, arg := range argsArr {
+		r = c.compileObject(arg)
 		c.addABC(MOVE, argRegs[i].N, r.N, 0)
 	}
 	// Always return one value
-	c.addABC(CALL, r1.N, 1+len(expr.Args), 2)
+	c.addABC(CALL, r1.N, 1+len(argsArr), 2)
 	return r1
 }
 
-func (c *Compiler) compileExpr(expr parser.Expr) *Reg {
-	switch ex := expr.(type) {
-	case *parser.Primitive:
-		return c.compilePrimitive(ex)
-	case *parser.Ident:
-		return c.compileIdent(ex)
-	case *parser.CallExpr:
-		return c.compileCallExpr(ex)
+func (c *Compiler) compileObject(obj types.Object) *Reg {
+	switch o := obj.(type) {
+	case types.Number:
+		return c.compileNumber(o)
+	case *types.Symbol:
+		return c.compileSymbol(o)
+	case *types.Pair:
+		return c.compilePair(o)
 	default:
-		log.Fatalf("Unknown expression %v", ex)
+		log.Fatalf("Unknown type of object %v", o)
 	}
 	return nil
 }
 
-func (c *Compiler) compileExprs(exprs []parser.Expr) []*Reg {
-	regs := make([]*Reg, len(exprs))
-	for i, expr := range exprs {
-		regs[i] = c.compileExpr(expr)
+func (c *Compiler) compileObjects(objs []types.Object) []*Reg {
+	regs := make([]*Reg, len(objs))
+	for i, obj := range objs {
+		regs[i] = c.compileObject(obj)
 	}
 	return regs
 }
@@ -115,12 +112,12 @@ func newClosureProto() *types.ClosureProto {
 	}
 }
 
-func Compile(exprs []parser.Expr) (*types.Closure, error) {
+func Compile(objs []types.Object) (*types.Closure, error) {
 	c := Compiler{
 		Proto: newClosureProto(),
 		nreg:  0,
 	}
-	regs := c.compileExprs(exprs)
+	regs := c.compileObjects(objs)
 	lastReg := regs[len(regs)-1]
 	c.addABC(RETURN, lastReg.N, 2, 0)
 

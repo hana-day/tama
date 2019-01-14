@@ -104,6 +104,26 @@ func (p *Pair) Type() ObjectType {
 	return TyPair
 }
 
+func (p *Pair) Len() int {
+	var cdr Object
+	len := 1
+	for cdr.Type() == TyPair {
+		len++
+	}
+	return len
+}
+
+func (p *Pair) ListToArray() []Object {
+	arr := []Object{}
+	pair := p
+	for pair.Cdr.Type() != TyNil {
+		arr = append(arr, pair.Car)
+		pair = pair.Cdr.(*Pair)
+	}
+	arr = append(arr, pair.Car)
+	return arr
+}
+
 func (s *Symbol) Type() ObjectType {
 	return TySymbol
 }

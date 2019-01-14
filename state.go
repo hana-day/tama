@@ -34,7 +34,7 @@ func (s *State) LoadString(source string) (*types.Closure, error) {
 	p := &parser.Parser{}
 	p.Init([]byte(source))
 	f := p.ParseFile()
-	return compiler.Compile(f.Exprs)
+	return compiler.Compile(f.Objs)
 }
 
 func (s *State) precall(clIndex int) error {

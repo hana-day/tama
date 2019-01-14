@@ -1,19 +1,14 @@
 package compiler
 
 import (
-	"github.com/hyusuk/tama/parser"
-	"github.com/hyusuk/tama/scanner"
+	"github.com/hyusuk/tama/types"
 	"testing"
 )
 
-func TestCompileExprs(t *testing.T) {
-	exprs := []parser.Expr{
-		&parser.Primitive{
-			Kind:  scanner.INT,
-			Value: "1",
-		},
-	}
-	cl, _ := Compile(exprs)
+func TestCompileNumber(t *testing.T) {
+	num := types.Number(1)
+	objs := []types.Object{num}
+	cl, _ := Compile(objs)
 	insts := cl.Proto.Insts
 	if len(insts) != 2 {
 		t.Fatalf("expected %d, but got %d", 2, len(insts))
@@ -26,11 +21,11 @@ func TestCompileExprs(t *testing.T) {
 	}
 }
 
-func TestCompileIdent(t *testing.T) {
+func TestCompileSymbol(t *testing.T) {
 	c := &Compiler{
 		Proto: newClosureProto(),
 	}
-	c.compileIdent(&parser.Ident{
+	c.compileSymbol(&types.Symbol{
 		Name: "test",
 	})
 	if len(c.Proto.Insts) != 2 {

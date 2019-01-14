@@ -1,44 +1,37 @@
 package parser
 
 import (
-	"github.com/hyusuk/tama/scanner"
+	"github.com/hyusuk/tama/types"
 	"testing"
 )
 
 func TestParseFile(t *testing.T) {
 	p := &Parser{}
 	p.Init([]byte(" 1 "))
-	f := p.ParseFile()
-	if len(f.Exprs) != 1 {
-		t.Fatalf("expected %d, but got %d", 1, len(f.Exprs))
-	}
-	prim, ok := f.Exprs[0].(*Primitive)
+	num, ok := p.parseObject().(types.Number)
 	if !ok {
-		t.Fatalf("Unexpected expression")
+		t.Fatalf("exected number")
 	}
-	if prim.Kind != scanner.INT || prim.Value != "1" {
-		t.Fatalf("Unexpected primitive, kind: %d, value: %s", prim.Kind, prim.Value)
+	if num.String() != "1" {
+		t.Fatalf("expected %s, but got %s", "1", num.String())
 	}
 }
 
-func TestParseExpr(t *testing.T) {
+func TestParsePair(t *testing.T) {
 	p := &Parser{}
 
 	// Parse procedure call expression
 	p.Init([]byte("(+ 1 2)"))
-	expr := p.parseExpr().(*CallExpr)
-	name := expr.Func.(*Ident).Name
-	if name != "+" {
-		t.Fatalf("expected %s, but got %s", name, "+")
+	pair, ok := p.parseObject().(*types.Pair)
+	if !ok {
+		t.Fatalf("expected pair")
 	}
-	if len(expr.Args) != 2 {
-		t.Fatalf("expected %d, but got %d", len(expr.Args), 2)
+	car, _ := types.Car(pair)
+	sym, ok := car.(*types.Symbol)
+	if !ok {
+		t.Fatalf("expected symbol")
 	}
-	prim := expr.Args[1].(*Primitive)
-	if prim.Kind != scanner.INT {
-		t.Fatalf("expected %d, but got %d", prim.Kind, scanner.INT)
-	}
-	if prim.Value != "2" {
-		t.Fatalf("expected %s, but got %s", prim.Value, "2")
+	if sym.Name != "+" {
+		t.Fatalf("expected %s, but got %s", sym.Name, "+")
 	}
 }

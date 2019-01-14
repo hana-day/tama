@@ -2,12 +2,13 @@ package parser
 
 import (
 	"github.com/hyusuk/tama/scanner"
+	"github.com/hyusuk/tama/types"
 	"log"
+	"strconv"
 )
 
 type File struct {
-	Exprs []Expr // top-level expressions
-	// Scope      *Scope          // package scope (this file only)
+	Objs []types.Object // top-level expressions
 }
 
 type Parser struct {
@@ -32,61 +33,52 @@ func (p *Parser) expect(tok scanner.Token) {
 	p.next()
 }
 
-func (p *Parser) parseInt() Expr {
-	expr := &Primitive{
-		Kind:  p.tok,
-		Value: p.lit,
-	}
+func (p *Parser) parseInt() types.Object {
+	f, _ := strconv.ParseFloat(p.lit, 64)
+	n := types.Number(f)
 	p.next()
-	return expr
+	return n
 }
 
-func (p *Parser) parseIdent() Expr {
-	expr := &Ident{Name: p.lit}
+func (p *Parser) parseIdent() types.Object {
+	sym := &types.Symbol{Name: types.String(p.lit)}
 	p.next()
-	return expr
+	return sym
 }
 
-func (p *Parser) parseCall() Expr {
-	if p.tok != scanner.IDENT {
-		log.Fatalf("Unexpected token %d", p.tok)
+func (p *Parser) parsePair() types.Object {
+	if p.tok == scanner.RPAREN {
+		p.next()
+		return types.Nil
 	}
-	expr := &CallExpr{Func: &Ident{Name: p.lit}}
-	p.next()
-	for p.tok != scanner.RPAREN {
-		expr.Args = append(expr.Args, p.parseExpr())
-	}
-	p.next()
-	return expr
+	obj := p.parseObject()
+	return types.Cons(obj, p.parsePair())
 }
 
-func (p *Parser) parseExpr() (expr Expr) {
+func (p *Parser) parseObject() types.Object {
 	if p.tok == scanner.INT {
-		expr = p.parseInt()
-		return
+		return p.parseInt()
 	}
 	if p.tok == scanner.LPAREN {
 		p.next()
-		expr = p.parseCall()
-		return
+		return p.parsePair()
 	}
 	if p.tok == scanner.IDENT {
-		expr = p.parseIdent()
-		return
+		return p.parseIdent()
 	}
 	log.Fatalf("Unexpected token %d", p.tok)
 	return nil
 }
 
-func (p *Parser) parseExprs() (exprs []Expr) {
+func (p *Parser) parseObjects() (objs []types.Object) {
 	for p.tok != scanner.EOF {
-		exprs = append(exprs, p.parseExpr())
+		objs = append(objs, p.parseObject())
 	}
 	return
 }
 
 func (p *Parser) ParseFile() *File {
 	return &File{
-		Exprs: p.parseExprs(),
+		Objs: p.parseObjects(),
 	}
 }
