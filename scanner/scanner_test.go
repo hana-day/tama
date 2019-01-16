@@ -43,7 +43,10 @@ func TestScan(t *testing.T) {
 	for i, tc := range testcases {
 		s.Init(tc.src)
 		for j, expect := range tc.expects {
-			tok, lit := s.Scan()
+			tok, lit, err := s.Scan()
+			if err != nil {
+				t.Fatalf("case %d-%d: unexpected error %v", i, j, err)
+			}
 			if tok != expect.tok {
 				t.Fatalf("case %d-%d: expected %d, but got %d", i, j, expect.tok, tok)
 			}

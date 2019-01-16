@@ -1,9 +1,9 @@
 package parser
 
 import (
+	"fmt"
 	"github.com/hyusuk/tama/scanner"
 	"github.com/hyusuk/tama/types"
-	"log"
 	"strconv"
 )
 
@@ -17,68 +17,98 @@ type Parser struct {
 	lit     string        // Next token literal
 }
 
-func (p *Parser) Init(src []byte) {
+func (p *Parser) Init(src []byte) error {
 	p.scanner.Init(src)
-	p.next()
-}
-
-func (p *Parser) next() {
-	p.tok, p.lit = p.scanner.Scan()
-}
-
-func (p *Parser) expect(tok scanner.Token) {
-	if p.tok != tok {
-		log.Fatalf("expected token %d, but got %d", tok, p.tok)
+	if err := p.next(); err != nil {
+		return err
 	}
-	p.next()
-}
-
-func (p *Parser) parseInt() types.Object {
-	f, _ := strconv.ParseFloat(p.lit, 64)
-	n := types.Number(f)
-	p.next()
-	return n
-}
-
-func (p *Parser) parseIdent() types.Object {
-	sym := &types.Symbol{Name: types.String(p.lit)}
-	p.next()
-	return sym
-}
-
-func (p *Parser) parsePair() types.Object {
-	if p.tok == scanner.RPAREN {
-		p.next()
-		return types.NilObject
-	}
-	obj := p.parseObject()
-	return types.Cons(obj, p.parsePair())
-}
-
-func (p *Parser) parseObject() types.Object {
-	if p.tok == scanner.INT {
-		return p.parseInt()
-	}
-	if p.tok == scanner.LPAREN {
-		p.next()
-		return p.parsePair()
-	}
-	if p.tok == scanner.IDENT {
-		return p.parseIdent()
-	}
-	log.Fatalf("Unexpected token %d", p.tok)
 	return nil
 }
 
-func (p *Parser) parseObjects() (objs []types.Object) {
-	for p.tok != scanner.EOF {
-		objs = append(objs, p.parseObject())
-	}
-	return
+func (p *Parser) error(msg string) error {
+	return fmt.Errorf("parse error: %s", msg)
 }
 
-func (p *Parser) ParseFile() *File {
-	return &File{
-		Objs: p.parseObjects(),
+func (p *Parser) next() error {
+	var err error
+	if p.tok, p.lit, err = p.scanner.Scan(); err != nil {
+		return err
 	}
+	return nil
+}
+
+func (p *Parser) expect(tok scanner.Token) error {
+	if p.tok != tok {
+		return p.error(fmt.Sprintf("expected token %d, but got %d", tok, p.tok))
+	}
+	if err := p.next(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Parser) parseInt() (types.Object, error) {
+	f, err := strconv.ParseFloat(p.lit, 64)
+	if err != nil {
+		return nil, p.error("cannot parse number")
+	}
+	n := types.Number(f)
+	return n, p.next()
+}
+
+func (p *Parser) parseIdent() (types.Object, error) {
+	sym := &types.Symbol{Name: types.String(p.lit)}
+	return sym, p.next()
+}
+
+func (p *Parser) parsePair() (types.Object, error) {
+	if p.tok == scanner.RPAREN {
+		return types.NilObject, p.next()
+	}
+	car, err := p.parseObject()
+	if err != nil {
+		return nil, err
+	}
+	cdr, err := p.parsePair()
+	if err != nil {
+		return nil, err
+	}
+	return types.Cons(car, cdr), nil
+}
+
+func (p *Parser) parseObject() (types.Object, error) {
+	switch p.tok {
+	case scanner.INT:
+		return p.parseInt()
+	case scanner.LPAREN:
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		return p.parsePair()
+	case scanner.IDENT:
+		return p.parseIdent()
+	default:
+		return nil, p.error(fmt.Sprintf("unexpected token %d", p.tok))
+
+	}
+}
+
+func (p *Parser) parseObjects() ([]types.Object, error) {
+	var objs []types.Object
+	for p.tok != scanner.EOF {
+		obj, err := p.parseObject()
+		if err != nil {
+			return objs, err
+		}
+		objs = append(objs, obj)
+	}
+	return objs, nil
+}
+
+func (p *Parser) ParseFile() (*File, error) {
+	objs, err := p.parseObjects()
+	if err != nil {
+		return nil, err
+	}
+	return &File{Objs: objs}, nil
 }

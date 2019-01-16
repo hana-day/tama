@@ -7,8 +7,14 @@ import (
 
 func TestParseFile(t *testing.T) {
 	p := &Parser{}
-	p.Init([]byte(" 1 "))
-	num, ok := p.parseObject().(types.Number)
+	if err := p.Init([]byte(" 1 ")); err != nil {
+		t.Fatal(err)
+	}
+	obj, err := p.parseObject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	num, ok := obj.(types.Number)
 	if !ok {
 		t.Fatalf("exected number")
 	}
@@ -21,12 +27,21 @@ func TestParsePair(t *testing.T) {
 	p := &Parser{}
 
 	// Parse procedure call expression
-	p.Init([]byte("(+ 1 2)"))
-	pair, ok := p.parseObject().(*types.Pair)
+	if err := p.Init([]byte("(+ 1 2)")); err != nil {
+		t.Fatal(err)
+	}
+	obj, err := p.parseObject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pair, ok := obj.(*types.Pair)
 	if !ok {
 		t.Fatalf("expected pair")
 	}
-	car, _ := types.Car(pair)
+	car, err := types.Car(pair)
+	if err != nil {
+		t.Fatal(err)
+	}
 	sym, ok := car.(*types.Symbol)
 	if !ok {
 		t.Fatalf("expected symbol")

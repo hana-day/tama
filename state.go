@@ -35,7 +35,10 @@ func NewState() *State {
 func (s *State) LoadString(source string) (*types.Closure, error) {
 	p := &parser.Parser{}
 	p.Init([]byte(source))
-	f := p.ParseFile()
+	f, err := p.ParseFile()
+	if err != nil {
+		return nil, err
+	}
 	return compiler.Compile(f.Objs)
 }
 

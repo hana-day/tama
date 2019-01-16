@@ -138,7 +138,7 @@ func Cons(car Object, cdr Object) *Pair {
 func Car(v Object) (Object, error) {
 	p, ok := v.(*Pair)
 	if !ok {
-		return nil, fmt.Errorf("%v is not a pair", v)
+		return nil, fmt.Errorf("car: %v is not a pair", v)
 	}
 	return p.Car, nil
 }
@@ -146,7 +146,7 @@ func Car(v Object) (Object, error) {
 func Cdr(v Object) (Object, error) {
 	p, ok := v.(*Pair)
 	if !ok {
-		return nil, fmt.Errorf("%v is not a pair", v)
+		return nil, fmt.Errorf("cdr: %v is not a pair", v)
 	}
 	return p.Cdr, nil
 }

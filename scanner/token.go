@@ -3,7 +3,8 @@ package scanner
 type Token int
 
 const (
-	EOF Token = iota
+	ILLEGAL Token = iota
+	EOF
 	INT
 	LPAREN // "("
 	RPAREN // ")"

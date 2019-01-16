@@ -2,7 +2,7 @@ package scanner
 
 import (
 	"bytes"
-	"log"
+	"fmt"
 )
 
 type Scanner struct {
@@ -68,11 +68,12 @@ func (s *Scanner) scanIdentifier() string {
 	return string(s.src[offs:s.offset])
 }
 
-func (s *Scanner) Scan() (tok Token, lit string) {
+func (s *Scanner) Scan() (tok Token, lit string, err error) {
 	s.skipSpaces()
 	ch := s.ch
 	if isDigit(ch) {
-		return s.scanNumber()
+		tok, lit = s.scanNumber()
+		return
 	}
 	if isInitial(ch) {
 		lit = s.scanIdentifier()
@@ -88,7 +89,7 @@ func (s *Scanner) Scan() (tok Token, lit string) {
 	case ')':
 		tok = RPAREN
 	default:
-		log.Fatalf("Unexpected token %c", ch)
+		return ILLEGAL, "", fmt.Errorf("unexpected token %c", ch)
 	}
 	return
 }
