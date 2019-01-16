@@ -8,6 +8,7 @@ const (
 	RETURN int = iota
 	LOADK
 	GETGLOBAL
+	SETGLOBAL
 	MOVE
 	CALL
 )

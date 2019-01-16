@@ -26,15 +26,21 @@ func TestExecuteString(t *testing.T) {
 			"(+ 1 2 3) (+ 1 2 3 4)",
 			"10",
 		},
+		{
+			func() *State { return NewState() },
+			"(define a 1) (+ a 1)",
+			"2",
+		},
 	}
 	for i, tc := range testcases {
 		s := tc.stateFactory()
 		if err := s.ExecString(tc.source); err != nil {
 			t.Fatalf("case %d: unexpected error %v", i, err)
 		}
-		v, ok := s.CallStack.Top().(types.Object)
+		top := s.CallStack.Top()
+		v, ok := top.(types.Object)
 		if !ok {
-			t.Fatalf("case %d: unsupported object was found", i)
+			t.Fatalf("case %d: unsupported object %v", i, top)
 		}
 		if v.String() != tc.resultString {
 			t.Fatalf("case %d: expected %s, but got %s", i, v.String(), tc.resultString)

@@ -2,6 +2,7 @@ package tama
 
 import (
 	"github.com/hyusuk/tama/compiler"
+	"github.com/hyusuk/tama/types"
 )
 
 func runVM(s *State) {
@@ -17,6 +18,10 @@ func runVM(s *State) {
 		case compiler.GETGLOBAL:
 			bx := compiler.GetArgBx(inst)
 			s.CallStack.Set(ra, s.Global[cl.Proto.Consts[bx].String()])
+		case compiler.SETGLOBAL:
+			bx := compiler.GetArgBx(inst)
+			obj := s.CallStack.Get(ra).(types.Object)
+			s.Global[cl.Proto.Consts[bx].String()] = obj
 		case compiler.MOVE:
 			rb := base + compiler.GetArgB(inst)
 			s.CallStack.Set(ra, s.CallStack.Get(rb))

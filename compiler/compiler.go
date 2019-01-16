@@ -56,28 +56,52 @@ func (c *Compiler) compileSymbol(sym *types.Symbol) *Reg {
 	return r1
 }
 
+// Compile define syntax
+//
+// (define a 1)
+func (c *Compiler) compileDefine(pair *types.Pair) *Reg {
+	cdr, _ := types.Cdr(pair)
+	cdar, _ := types.Car(cdr)
+	cddr, _ := types.Cdr(cdr)
+	rest, _ := types.Car(cddr)
+	sym, ok := cdar.(*types.Symbol)
+	if !ok {
+		log.Fatalf("The first argument of define must be a symbol")
+	}
+	nameReg := c.newReg()
+	c.addABx(LOADK, nameReg.N, c.constIndex(sym.Name))
+	valueReg := c.compileObject(rest)
+	c.addABx(SETGLOBAL, valueReg.N, nameReg.N)
+	return valueReg
+}
+
 func (c *Compiler) compilePair(pair *types.Pair) *Reg {
 	v, _ := types.Car(pair)
-	procName, ok := v.(*types.Symbol)
+	first, ok := v.(*types.Symbol)
 	if !ok {
 		log.Fatalf("Invalid function name")
 	}
-	r1 := c.compileSymbol(procName)
-	cdr, _ := types.Cdr(pair)
-	args := cdr.(*types.Pair)
-	argsArr := args.ListToArray()
-	argRegs := make([]*Reg, len(argsArr))
-	for i := 0; i < len(argsArr); i++ {
-		argRegs[i] = c.newReg()
+	switch first.Name {
+	case "define":
+		return c.compileDefine(pair)
+	default:
+		r1 := c.compileSymbol(first)
+		cdr, _ := types.Cdr(pair)
+		args := cdr.(*types.Pair)
+		argsArr := args.ListToArray()
+		argRegs := make([]*Reg, len(argsArr))
+		for i := 0; i < len(argsArr); i++ {
+			argRegs[i] = c.newReg()
+		}
+		var r *Reg
+		for i, arg := range argsArr {
+			r = c.compileObject(arg)
+			c.addABC(MOVE, argRegs[i].N, r.N, 0)
+		}
+		// Always return one value
+		c.addABC(CALL, r1.N, 1+len(argsArr), 2)
+		return r1
 	}
-	var r *Reg
-	for i, arg := range argsArr {
-		r = c.compileObject(arg)
-		c.addABC(MOVE, argRegs[i].N, r.N, 0)
-	}
-	// Always return one value
-	c.addABC(CALL, r1.N, 1+len(argsArr), 2)
-	return r1
 }
 
 func (c *Compiler) compileObject(obj types.Object) *Reg {
