@@ -8,7 +8,7 @@ func TestPairString(t *testing.T) {
 		str    string
 	}{
 		{Cons(Number(1), Number(2)), "(1 . 2)"},
-		{Cons(Number(1), Cons(Number(2), Nil)), "(1 . (2 . ()))"},
+		{Cons(Number(1), Cons(Number(2), NilObject)), "(1 . (2 . ()))"},
 	}
 
 	for i, tc := range testcases {

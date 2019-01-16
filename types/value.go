@@ -32,8 +32,8 @@ type (
 		// go closure only
 		Fn interface{}
 	}
-	NilType struct{}
-	Symbol  struct {
+	Nil    struct{}
+	Symbol struct {
 		Name String
 	}
 	Pair struct {
@@ -86,15 +86,15 @@ func (s *Symbol) String() string {
 	return s.Name.String()
 }
 
-func (n *NilType) String() string {
+func (n *Nil) String() string {
 	return "()"
 }
 
-func (n *NilType) Type() ObjectType {
+func (n *Nil) Type() ObjectType {
 	return TyNil
 }
 
-var Nil = &NilType{}
+var NilObject = &Nil{}
 
 func (p *Pair) String() string {
 	return fmt.Sprintf("(%s . %s)", p.Car.String(), p.Cdr.String())
@@ -153,7 +153,7 @@ func Cdr(v Object) (Object, error) {
 
 func List(args ...Object) Object {
 	if len(args) == 0 {
-		return Nil
+		return NilObject
 	}
 	return &Pair{
 		Car: args[0],

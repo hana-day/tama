@@ -49,7 +49,7 @@ func (p *Parser) parseIdent() types.Object {
 func (p *Parser) parsePair() types.Object {
 	if p.tok == scanner.RPAREN {
 		p.next()
-		return types.Nil
+		return types.NilObject
 	}
 	obj := p.parseObject()
 	return types.Cons(obj, p.parsePair())
