@@ -4,10 +4,11 @@ import (
 	"github.com/hyusuk/tama/types"
 )
 
-func (s *State) OpenBase() {
+func (s *State) OpenBase() *State {
 	cl := types.NewGoClosure()
 	cl.Fn = fnAdd
 	s.Global["+"] = cl
+	return s
 }
 
 func fnAdd(s *State) {

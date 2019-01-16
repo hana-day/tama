@@ -23,11 +23,13 @@ type State struct {
 }
 
 func NewState() *State {
-	return &State{
+	s := &State{
 		CallStack: types.NewStack(DefaultStackSize),
 		CallInfos: types.NewStack(DefaultStackSize),
 		Global:    map[string]types.Object{},
 	}
+	s.OpenBase()
+	return s
 }
 
 func (s *State) LoadString(source string) (*types.Closure, error) {

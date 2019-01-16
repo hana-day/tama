@@ -6,44 +6,38 @@ import (
 )
 
 func TestExecuteString(t *testing.T) {
-	s := NewState()
-	err := s.ExecString(" 1 ")
-	if err != nil {
-		t.Fatal(err)
+	testcases := []struct {
+		stateFactory func() *State
+		source       string
+		resultString string
+	}{
+		{
+			func() *State { return NewState() },
+			" 1 ",
+			"1",
+		},
+		{
+			func() *State { s := NewState(); s.Global["test"] = types.Number(2); return s },
+			"test",
+			"2",
+		},
+		{
+			func() *State { return NewState() },
+			"(+ 1 2 3) (+ 1 2 3 4)",
+			"10",
+		},
 	}
-	num, ok := s.CallStack.Top().(types.Number)
-	if !ok {
-		t.Fatalf("Invalid call stack top")
-	}
-	if num.String() != "1" {
-		t.Fatalf("expected %s, but got %s", "1", num.String())
-	}
-
-	s = NewState()
-	s.Global["test"] = types.Number(2)
-	err = s.ExecString("test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	num, ok = s.CallStack.Top().(types.Number)
-	if !ok {
-		t.Fatalf("Invalid call stack top")
-	}
-	if num.String() != "2" {
-		t.Fatalf("expected %s, but got %s", "2", num.String())
-	}
-
-	s = NewState()
-	s.OpenBase()
-	err = s.ExecString("(+ 1 2 3) (+ 1 2 3 4)")
-	if err != nil {
-		t.Fatal(err)
-	}
-	num, ok = s.CallStack.Top().(types.Number)
-	if !ok {
-		t.Fatalf("Invalid call stack top")
-	}
-	if num.String() != "10" {
-		t.Fatalf("expected %s, but got %s", "10", num.String())
+	for i, tc := range testcases {
+		s := tc.stateFactory()
+		if err := s.ExecString(tc.source); err != nil {
+			t.Fatalf("case %d: unexpected error %v", i, err)
+		}
+		v, ok := s.CallStack.Top().(types.Object)
+		if !ok {
+			t.Fatalf("case %d: unsupported object was found", i)
+		}
+		if v.String() != tc.resultString {
+			t.Fatalf("case %d: expected %s, but got %s", i, v.String(), tc.resultString)
+		}
 	}
 }
