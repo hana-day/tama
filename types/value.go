@@ -151,6 +151,22 @@ func Cdr(v Object) (Object, error) {
 	return p.Cdr, nil
 }
 
+func Cdar(v Object) (Object, error) {
+	cdr, err := Cdr(v)
+	if err != nil {
+		return nil, err
+	}
+	return Car(cdr)
+}
+
+func Cddr(v Object) (Object, error) {
+	cdr, err := Cdr(v)
+	if err != nil {
+		return nil, err
+	}
+	return Cdr(cdr)
+}
+
 func List(args ...Object) Object {
 	if len(args) == 0 {
 		return NilObject

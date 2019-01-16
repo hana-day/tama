@@ -1,12 +1,16 @@
 package tama
 
 import (
+	"fmt"
 	"github.com/hyusuk/tama/compiler"
 	"github.com/hyusuk/tama/types"
 )
 
-func runVM(s *State) {
-	ci, _ := s.CallInfos.Top().(*CallInfo)
+func runVM(s *State) error {
+	ci, ok := s.CallInfos.Top().(*CallInfo)
+	if !ok {
+		return fmt.Errorf("vm: expected closure")
+	}
 	cl := ci.Cl
 	base := ci.Base
 	for _, inst := range cl.Proto.Insts {
@@ -41,4 +45,5 @@ func runVM(s *State) {
 			}
 		}
 	}
+	return nil
 }

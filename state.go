@@ -81,8 +81,7 @@ func (s *State) call(nargs int) error {
 	if err := s.precall(clIndex); err != nil {
 		return err
 	}
-	runVM(s)
-	return nil
+	return runVM(s)
 }
 
 func (s *State) ExecString(source string) error {

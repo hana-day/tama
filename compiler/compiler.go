@@ -1,8 +1,8 @@
 package compiler
 
 import (
+	"fmt"
 	"github.com/hyusuk/tama/types"
-	"log"
 )
 
 type Compiler struct {
@@ -12,6 +12,10 @@ type Compiler struct {
 
 type Reg struct {
 	N int // register number
+}
+
+func (c *Compiler) error(msg string) error {
+	return fmt.Errorf("compiler: %s", msg)
 }
 
 func (c *Compiler) newReg() *Reg {
@@ -59,71 +63,94 @@ func (c *Compiler) compileSymbol(sym *types.Symbol) *Reg {
 // Compile define syntax
 //
 // (define a 1)
-func (c *Compiler) compileDefine(pair *types.Pair) *Reg {
-	cdr, _ := types.Cdr(pair)
-	cdar, _ := types.Car(cdr)
-	cddr, _ := types.Cdr(cdr)
-	rest, _ := types.Car(cddr)
+func (c *Compiler) compileDefine(pair *types.Pair) (*Reg, error) {
+	errobj := c.error(fmt.Sprintf("invalid define"))
+	cdar, err := types.Cdar(pair)
+	if err != nil {
+		return nil, errobj
+	}
+	cddr, err := types.Cddr(pair)
+	if err != nil {
+		return nil, errobj
+	}
+	rest, err := types.Car(cddr)
+	if err != nil {
+		return nil, errobj
+	}
 	sym, ok := cdar.(*types.Symbol)
 	if !ok {
-		log.Fatalf("The first argument of define must be a symbol")
+		return nil, c.error("The first argument of define must be a symbol")
 	}
 	nameReg := c.newReg()
 	c.addABx(LOADK, nameReg.N, c.constIndex(sym.Name))
-	valueReg := c.compileObject(rest)
+	valueReg, err := c.compileObject(rest)
+	if err != nil {
+		return nil, err
+	}
 	c.addABx(SETGLOBAL, valueReg.N, nameReg.N)
-	return valueReg
+	return valueReg, nil
 }
 
-func (c *Compiler) compilePair(pair *types.Pair) *Reg {
-	v, _ := types.Car(pair)
+func (c *Compiler) compilePair(pair *types.Pair) (*Reg, error) {
+	v, err := types.Car(pair)
+	if err != nil {
+		return nil, err
+	}
 	first, ok := v.(*types.Symbol)
 	if !ok {
-		log.Fatalf("Invalid function name")
+		return nil, c.error("invalid procedure/define name")
 	}
 	switch first.Name {
 	case "define":
 		return c.compileDefine(pair)
 	default:
 		r1 := c.compileSymbol(first)
-		cdr, _ := types.Cdr(pair)
+		cdr, err := types.Cdr(pair)
+		if err != nil {
+			return nil, err
+		}
 		args := cdr.(*types.Pair)
 		argsArr := args.ListToArray()
 		argRegs := make([]*Reg, len(argsArr))
 		for i := 0; i < len(argsArr); i++ {
 			argRegs[i] = c.newReg()
 		}
-		var r *Reg
 		for i, arg := range argsArr {
-			r = c.compileObject(arg)
+			r, err := c.compileObject(arg)
+			if err != nil {
+				return nil, err
+			}
 			c.addABC(MOVE, argRegs[i].N, r.N, 0)
 		}
 		// Always return one value
 		c.addABC(CALL, r1.N, 1+len(argsArr), 2)
-		return r1
+		return r1, nil
 	}
 }
 
-func (c *Compiler) compileObject(obj types.Object) *Reg {
+func (c *Compiler) compileObject(obj types.Object) (*Reg, error) {
 	switch o := obj.(type) {
 	case types.Number:
-		return c.compileNumber(o)
+		return c.compileNumber(o), nil
 	case *types.Symbol:
-		return c.compileSymbol(o)
+		return c.compileSymbol(o), nil
 	case *types.Pair:
 		return c.compilePair(o)
 	default:
-		log.Fatalf("Unknown type of object %v", o)
+		return nil, c.error(fmt.Sprintf("Unknown type of object %v", o))
 	}
-	return nil
 }
 
-func (c *Compiler) compileObjects(objs []types.Object) []*Reg {
+func (c *Compiler) compileObjects(objs []types.Object) ([]*Reg, error) {
 	regs := make([]*Reg, len(objs))
 	for i, obj := range objs {
-		regs[i] = c.compileObject(obj)
+		reg, err := c.compileObject(obj)
+		if err != nil {
+			return regs, err
+		}
+		regs[i] = reg
 	}
-	return regs
+	return regs, nil
 }
 
 func newClosureProto() *types.ClosureProto {
@@ -139,7 +166,10 @@ func Compile(objs []types.Object) (*types.Closure, error) {
 		Proto: newClosureProto(),
 		nreg:  0,
 	}
-	regs := c.compileObjects(objs)
+	regs, err := c.compileObjects(objs)
+	if err != nil {
+		return nil, err
+	}
 	lastReg := regs[len(regs)-1]
 	c.addABC(RETURN, lastReg.N, 2, 0)
 
