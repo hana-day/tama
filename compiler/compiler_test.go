@@ -25,16 +25,13 @@ func TestCompileNumber(t *testing.T) {
 }
 
 func TestCompileSymbol(t *testing.T) {
-	c := &Compiler{
-		Proto: newClosureProto(),
+	fs := newFuncState(nil)
+	c := &Compiler{}
+	c.compileSymbol(fs, &types.Symbol{Name: "test"})
+	if len(fs.Proto.Insts) != 1 {
+		t.Fatalf("expected %d, but got %d", 2, len(fs.Proto.Insts))
 	}
-	c.compileSymbol(&types.Symbol{
-		Name: "test",
-	})
-	if len(c.Proto.Insts) != 1 {
-		t.Fatalf("expected %d, but got %d", 2, len(c.Proto.Insts))
-	}
-	if opcode := GetOpCode(c.Proto.Insts[0]); opcode != GETGLOBAL {
+	if opcode := GetOpCode(fs.Proto.Insts[0]); opcode != GETGLOBAL {
 		t.Fatalf("expected %d, but got %d", GETGLOBAL, opcode)
 	}
 }

@@ -57,9 +57,8 @@ func (s String) Type() ObjectType {
 }
 
 type ClosureProto struct {
-	Insts        []uint32
-	Consts       []Object
-	MaxStackSize int
+	Insts  []uint32
+	Consts []Object
 }
 
 func (cl *Closure) String() string {
