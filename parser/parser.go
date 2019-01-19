@@ -25,8 +25,8 @@ func (p *Parser) Init(src []byte) error {
 	return nil
 }
 
-func (p *Parser) error(msg string) error {
-	return fmt.Errorf("parse error: %s", msg)
+func (p *Parser) error(format string, a ...interface{}) error {
+	return fmt.Errorf("parse error: %s", fmt.Sprintf(format, a...))
 }
 
 func (p *Parser) next() error {
@@ -39,7 +39,7 @@ func (p *Parser) next() error {
 
 func (p *Parser) expect(tok scanner.Token) error {
 	if p.tok != tok {
-		return p.error(fmt.Sprintf("expected token %d, but got %d", tok, p.tok))
+		return p.error("expected token %d, but got %d", tok, p.tok)
 	}
 	if err := p.next(); err != nil {
 		return err
@@ -88,7 +88,7 @@ func (p *Parser) parseObject() (types.Object, error) {
 	case scanner.IDENT:
 		return p.parseIdent()
 	default:
-		return nil, p.error(fmt.Sprintf("unexpected token %d", p.tok))
+		return nil, p.error("unexpected token %d", p.tok)
 
 	}
 }

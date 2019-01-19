@@ -30,8 +30,8 @@ func newFuncState(prev *FuncState) *FuncState {
 	}
 }
 
-func (c *Compiler) error(msg string) error {
-	return fmt.Errorf("compiler: %s", msg)
+func (c *Compiler) error(format string, a ...interface{}) error {
+	return fmt.Errorf("compiler: %s", fmt.Sprintf(format, a...))
 }
 
 func (fs *FuncState) newReg() *Reg {
@@ -96,7 +96,7 @@ func (c *Compiler) compileSymbol(fs *FuncState, sym *types.Symbol) *Reg {
 //
 // (define a 1)
 func (c *Compiler) compileDefine(fs *FuncState, pair *types.Pair) (*Reg, error) {
-	errobj := c.error(fmt.Sprintf("invalid define"))
+	errobj := c.error("invalid define")
 	cdar, err := types.Cdar(pair)
 	if err != nil {
 		return nil, errobj
@@ -126,12 +126,12 @@ func (c *Compiler) compileDefine(fs *FuncState, pair *types.Pair) (*Reg, error) 
 // (lambda (x y) ...)
 func (c *Compiler) compileLambda(fs *FuncState, pair *types.Pair) (*Reg, error) {
 	if pair.Len() < 3 {
-		return nil, c.error(fmt.Sprintf("invalid lambda %s", pair.String()))
+		return nil, c.error("invalid lambda %s", pair.String())
 	}
 	cdar, _ := types.Cdar(pair)
 	args, ok := cdar.(types.ArrayableObject)
 	if !ok {
-		return nil, c.error(fmt.Sprintf("invalid lambda %s", pair.String()))
+		return nil, c.error("invalid lambda %s", pair.String())
 	}
 	child := newFuncState(fs)
 	argsArr := args.Array()
@@ -139,7 +139,7 @@ func (c *Compiler) compileLambda(fs *FuncState, pair *types.Pair) (*Reg, error) 
 	for i, arg := range argsArr {
 		sym, ok := arg.(*types.Symbol)
 		if !ok {
-			return nil, c.error(fmt.Sprintf("invalid lambda %s", pair.String()))
+			return nil, c.error("invalid lambda %s", pair.String())
 		}
 		argSyms[i] = sym
 	}
@@ -182,12 +182,12 @@ func (c *Compiler) compileCall(fs *FuncState, proc *Reg, args types.ArrayableObj
 
 func (c *Compiler) compilePair(fs *FuncState, pair *types.Pair) (*Reg, error) {
 	if pair.Len() == 0 {
-		return nil, c.error(fmt.Sprintf("invalid syntax %s", pair.String()))
+		return nil, c.error("invalid syntax %s", pair.String())
 	}
 	cdr, _ := types.Cdr(pair)
 	args, ok := cdr.(types.ArrayableObject)
 	if !ok {
-		return nil, c.error(fmt.Sprintf("invalid syntax %s", pair.String()))
+		return nil, c.error("invalid syntax %s", pair.String())
 	}
 	v, _ := types.Car(pair)
 	switch first := v.(type) {
@@ -208,7 +208,7 @@ func (c *Compiler) compilePair(fs *FuncState, pair *types.Pair) (*Reg, error) {
 		}
 		return c.compileCall(fs, proc, args)
 	}
-	return nil, c.error(fmt.Sprintf("invalid procedure name %v", v))
+	return nil, c.error("invalid procedure name %v", v)
 }
 
 func (c *Compiler) compileObject(fs *FuncState, obj types.Object) (*Reg, error) {
@@ -220,7 +220,7 @@ func (c *Compiler) compileObject(fs *FuncState, obj types.Object) (*Reg, error) 
 	case *types.Pair:
 		return c.compilePair(fs, o)
 	default:
-		return nil, c.error(fmt.Sprintf("Unknown type of object %v", o))
+		return nil, c.error("Unknown type of object %v", o)
 	}
 }
 

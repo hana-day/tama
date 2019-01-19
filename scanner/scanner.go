@@ -89,7 +89,7 @@ func (s *Scanner) Scan() (tok Token, lit string, err error) {
 	case ')':
 		tok = RPAREN
 	default:
-		return ILLEGAL, "", fmt.Errorf("unexpected token %c", ch)
+		return ILLEGAL, "", fmt.Errorf("scanner: unexpected token %c", ch)
 	}
 	return
 }

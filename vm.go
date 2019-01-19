@@ -50,7 +50,7 @@ reentry:
 		case compiler.RETURN:
 			b := compiler.GetArgB(inst)
 			if b != 2 {
-				return fmt.Errorf("invalid number of returns")
+				return fmt.Errorf("vm: invalid number of returns")
 			}
 			s.postcall(ra)
 			nexeccalls--
