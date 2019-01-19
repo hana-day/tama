@@ -8,51 +8,43 @@ import (
 type Compiler struct {
 }
 
-type Reg struct {
+type reg struct {
 	N int // register number
 }
 
-func newReg(n int) *Reg {
-	return &Reg{N: n}
-}
-
-type FuncState struct {
+type funcState struct {
 	Proto *types.ClosureProto // current function header
 	nreg  int                 // number of registers
-	prev  *FuncState          // enclosing function
+	prev  *funcState          // enclosing function
 }
 
-func newFuncState(prev *FuncState) *FuncState {
-	return &FuncState{
+func newFuncState(prev *funcState) *funcState {
+	return &funcState{
 		Proto: types.NewClosureProto(),
 		nreg:  0,
 		prev:  prev,
 	}
 }
 
-func (c *Compiler) error(format string, a ...interface{}) error {
-	return fmt.Errorf("compiler: %s", fmt.Sprintf(format, a...))
-}
-
-func (fs *FuncState) newReg() *Reg {
-	reg := newReg(fs.nreg)
+func (fs *funcState) newReg() *reg {
+	r := &reg{N: fs.nreg}
 	fs.nreg++
-	return reg
+	return r
 }
 
-func (fs *FuncState) add(inst uint32) {
+func (fs *funcState) add(inst uint32) {
 	fs.Proto.Insts = append(fs.Proto.Insts, inst)
 }
 
-func (fs *FuncState) addABx(op int, a int, bx int) {
+func (fs *funcState) addABx(op int, a int, bx int) {
 	fs.add(CreateABx(op, a, bx))
 }
 
-func (fs *FuncState) addABC(op int, a int, b int, c int) {
+func (fs *funcState) addABC(op int, a int, b int, c int) {
 	fs.add(CreateABC(op, a, b, c))
 }
 
-func (fs *FuncState) constIndex(v types.Object) int {
+func (fs *funcState) constIndex(v types.Object) int {
 	for i, cs := range fs.Proto.Consts {
 		if cs == v {
 			return i
@@ -62,14 +54,14 @@ func (fs *FuncState) constIndex(v types.Object) int {
 	return len(fs.Proto.Consts) - 1
 }
 
-func (fs *FuncState) bindLocVar(sym *types.Symbol) {
+func (fs *funcState) bindLocVar(sym *types.Symbol) {
 	index := fs.nreg
 	v := &types.LocVar{Name: sym.Name, Index: index}
 	fs.Proto.LocVars[sym.Name] = v
 	fs.nreg++
 }
 
-func (fs *FuncState) findLocVar(sym *types.Symbol) *types.LocVar {
+func (fs *funcState) findLocVar(sym *types.Symbol) *types.LocVar {
 	loc, ok := fs.Proto.LocVars[sym.Name]
 	if !ok {
 		return nil
@@ -77,15 +69,19 @@ func (fs *FuncState) findLocVar(sym *types.Symbol) *types.LocVar {
 	return loc
 }
 
-func (c *Compiler) compileNumber(fs *FuncState, num types.Number) *Reg {
-	reg := fs.newReg()
-	fs.addABx(LOADK, reg.N, fs.constIndex(num))
-	return reg
+func (c *Compiler) error(format string, a ...interface{}) error {
+	return fmt.Errorf("compiler: %s", fmt.Sprintf(format, a...))
 }
 
-func (c *Compiler) compileSymbol(fs *FuncState, sym *types.Symbol) *Reg {
+func (c *Compiler) compileNumber(fs *funcState, num types.Number) *reg {
+	r := fs.newReg()
+	fs.addABx(LOADK, r.N, fs.constIndex(num))
+	return r
+}
+
+func (c *Compiler) compileSymbol(fs *funcState, sym *types.Symbol) *reg {
 	if loc := fs.findLocVar(sym); loc != nil {
-		return newReg(loc.Index)
+		return &reg{N: loc.Index}
 	}
 	r1 := fs.newReg()
 	fs.addABx(GETGLOBAL, r1.N, fs.constIndex(types.String(sym.Name)))
@@ -95,7 +91,7 @@ func (c *Compiler) compileSymbol(fs *FuncState, sym *types.Symbol) *Reg {
 // Compile define syntax
 //
 // (define a 1)
-func (c *Compiler) compileDefine(fs *FuncState, pair *types.Pair) (*Reg, error) {
+func (c *Compiler) compileDefine(fs *funcState, pair *types.Pair) (*reg, error) {
 	errobj := c.error("invalid define")
 	cdar, err := types.Cdar(pair)
 	if err != nil {
@@ -113,18 +109,18 @@ func (c *Compiler) compileDefine(fs *FuncState, pair *types.Pair) (*Reg, error) 
 	if !ok {
 		return nil, c.error("The first argument of define must be a symbol")
 	}
-	nameReg := fs.newReg()
-	fs.addABx(LOADK, nameReg.N, fs.constIndex(sym.Name))
-	valueReg, err := c.compileObject(fs, rest)
+	nameR := fs.newReg()
+	fs.addABx(LOADK, nameR.N, fs.constIndex(sym.Name))
+	valueR, err := c.compileObject(fs, rest)
 	if err != nil {
 		return nil, err
 	}
-	fs.addABx(SETGLOBAL, valueReg.N, nameReg.N)
-	return valueReg, nil
+	fs.addABx(SETGLOBAL, valueR.N, nameR.N)
+	return valueR, nil
 }
 
 // (lambda (x y) ...)
-func (c *Compiler) compileLambda(fs *FuncState, pair *types.Pair) (*Reg, error) {
+func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) {
 	if pair.Len() < 3 {
 		return nil, c.error("invalid lambda %s", pair.String())
 	}
@@ -152,11 +148,11 @@ func (c *Compiler) compileLambda(fs *FuncState, pair *types.Pair) (*Reg, error) 
 	}
 	cddr, _ := types.Cddr(pair)
 	body, _ := types.Car(cddr)
-	resultReg, err := c.compileObject(child, body)
+	resultR, err := c.compileObject(child, body)
 	if err != nil {
 		return nil, err
 	}
-	child.addABC(RETURN, resultReg.N, 2, 0)
+	child.addABC(RETURN, resultR.N, 2, 0)
 
 	protoIndex := len(fs.Proto.Protos)
 	fs.Proto.Protos = append(fs.Proto.Protos, child.Proto)
@@ -165,12 +161,12 @@ func (c *Compiler) compileLambda(fs *FuncState, pair *types.Pair) (*Reg, error) 
 	return r, nil
 }
 
-func (c *Compiler) compileCall(fs *FuncState, proc *Reg, args types.SlicableObject) (*Reg, error) {
+func (c *Compiler) compileCall(fs *funcState, proc *reg, args types.SlicableObject) (*reg, error) {
 	argsArr, err := args.Slice()
 	if err != nil {
 		return nil, err
 	}
-	argRegs := make([]*Reg, len(argsArr))
+	argRegs := make([]*reg, len(argsArr))
 	for i := 0; i < len(argsArr); i++ {
 		argRegs[i] = fs.newReg()
 	}
@@ -186,7 +182,7 @@ func (c *Compiler) compileCall(fs *FuncState, proc *Reg, args types.SlicableObje
 	return proc, nil
 }
 
-func (c *Compiler) compilePair(fs *FuncState, pair *types.Pair) (*Reg, error) {
+func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
 	if pair.Len() == 0 {
 		return nil, c.error("invalid syntax %s", pair.String())
 	}
@@ -203,11 +199,11 @@ func (c *Compiler) compilePair(fs *FuncState, pair *types.Pair) (*Reg, error) {
 			return c.compileDefine(fs, pair)
 		case "lambda":
 			return c.compileLambda(fs, pair)
-		default:
+		default: // (procedure-name args...)
 			proc := c.compileSymbol(fs, first)
 			return c.compileCall(fs, proc, args)
 		}
-	case *types.Pair:
+	case *types.Pair: // ((procedure-name args...) args...)
 		proc, err := c.compilePair(fs, first)
 		if err != nil {
 			return nil, err
@@ -217,7 +213,7 @@ func (c *Compiler) compilePair(fs *FuncState, pair *types.Pair) (*Reg, error) {
 	return nil, c.error("invalid procedure name %v", v)
 }
 
-func (c *Compiler) compileObject(fs *FuncState, obj types.Object) (*Reg, error) {
+func (c *Compiler) compileObject(fs *funcState, obj types.Object) (*reg, error) {
 	switch o := obj.(type) {
 	case types.Number:
 		return c.compileNumber(fs, o), nil
@@ -230,8 +226,8 @@ func (c *Compiler) compileObject(fs *FuncState, obj types.Object) (*Reg, error) 
 	}
 }
 
-func (c *Compiler) compileObjects(fs *FuncState, objs []types.Object) ([]*Reg, error) {
-	regs := make([]*Reg, len(objs))
+func (c *Compiler) compileObjects(fs *funcState, objs []types.Object) ([]*reg, error) {
+	regs := make([]*reg, len(objs))
 	for i, obj := range objs {
 		reg, err := c.compileObject(fs, obj)
 		if err != nil {
@@ -249,8 +245,8 @@ func Compile(objs []types.Object) (*types.Closure, error) {
 	if err != nil {
 		return nil, err
 	}
-	lastReg := regs[len(regs)-1]
-	fs.addABC(RETURN, lastReg.N, 2, 0)
+	lastR := regs[len(regs)-1]
+	fs.addABC(RETURN, lastR.N, 2, 0)
 
 	cl := types.NewScmClosure()
 	cl.Proto = fs.Proto
