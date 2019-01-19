@@ -39,10 +39,7 @@ func runVM(s *State) error {
 			}
 			base = s.Base
 		case compiler.RETURN:
-			b := compiler.GetArgB(inst)
-			if b != 0 {
-				s.CallStack.SetSp(ra + b - 1)
-			}
+			s.CallStack.SetSp(ra)
 		}
 	}
 	return nil

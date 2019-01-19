@@ -44,6 +44,7 @@ func (s *State) LoadString(source string) (*types.Closure, error) {
 
 func (s *State) precall(clIndex int) error {
 	s.Base = clIndex + 1
+	s.CallStack.Dump()
 	cl, ok := s.CallStack.Get(clIndex).(*types.Closure)
 	if !ok {
 		return fmt.Errorf("Function is not loaded")
@@ -77,7 +78,7 @@ func (s *State) postcall(resultSp int) {
 }
 
 func (s *State) call(nargs int) error {
-	clIndex := s.CallStack.Sp() - nargs - 1
+	clIndex := s.CallStack.Sp() - nargs
 	if err := s.precall(clIndex); err != nil {
 		return err
 	}

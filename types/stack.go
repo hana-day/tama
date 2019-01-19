@@ -23,13 +23,13 @@ func NewStack(defaultLen int) *Stack {
 
 func (s *Stack) Init(defaultLen int) *Stack {
 	s.arr = make([]*Element, defaultLen)
-	s.sp = 0
+	s.sp = -1
 	s.len = defaultLen
 	return s
 }
 
 func (s *Stack) Top() valueType {
-	return s.Get(s.sp - 1)
+	return s.Get(s.sp)
 }
 
 func (s *Stack) Sp() int {
@@ -45,19 +45,19 @@ func (s *Stack) Len() int {
 }
 
 func (s *Stack) Push(value valueType) {
+	s.sp++
 	s.arr[s.sp] = &Element{
 		Value: value,
 		stack: s,
 	}
-	s.sp++
 }
 
 func (s *Stack) Pop() valueType {
-	if s.sp <= 0 {
+	if s.sp < 0 {
 		return nil
 	}
-	v := s.Get(s.sp - 1)
-	s.arr[s.sp-1] = nil
+	v := s.Get(s.sp)
+	s.arr[s.sp] = nil
 	s.sp--
 	return v
 }
@@ -82,7 +82,7 @@ func (s *Stack) Set(i int, v valueType) {
 
 func (s *Stack) Dump() {
 	fmt.Printf("SP = %d, LEN = %d\n", s.sp, s.len)
-	for i := 0; i < s.sp; i++ {
+	for i := 0; i < 20; i++ {
 		fmt.Printf("%d => %v\n", i, s.arr[i])
 	}
 }
