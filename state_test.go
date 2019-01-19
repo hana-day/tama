@@ -33,7 +33,7 @@ func TestExecuteString(t *testing.T) {
 		},
 		{
 			func() *State { return NewState() },
-			"((lambda() (+ 1 2 3)))",
+			"((lambda (a) (+ 1 2 a)) 3)",
 			"6",
 		},
 	}

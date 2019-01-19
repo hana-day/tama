@@ -78,6 +78,14 @@ type ClosureProto struct {
 	Protos  []*ClosureProto // function prototypes inside the function
 }
 
+func NewClosureProto() *ClosureProto {
+	return &ClosureProto{
+		Insts:   []uint32{},
+		Consts:  []Object{},
+		LocVars: map[String]*LocVar{},
+	}
+}
+
 func (cl *Closure) String() string {
 	return "closure"
 }

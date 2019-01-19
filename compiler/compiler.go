@@ -12,6 +12,10 @@ type Reg struct {
 	N int // register number
 }
 
+func newReg(n int) *Reg {
+	return &Reg{N: n}
+}
+
 type FuncState struct {
 	Proto *types.ClosureProto // current function header
 	nreg  int                 // number of registers
@@ -20,12 +24,9 @@ type FuncState struct {
 
 func newFuncState(prev *FuncState) *FuncState {
 	return &FuncState{
-		Proto: &types.ClosureProto{
-			Insts:  []uint32{},
-			Consts: []types.Object{},
-		},
-		nreg: 0,
-		prev: prev,
+		Proto: types.NewClosureProto(),
+		nreg:  0,
+		prev:  prev,
 	}
 }
 
@@ -34,9 +35,7 @@ func (c *Compiler) error(msg string) error {
 }
 
 func (fs *FuncState) newReg() *Reg {
-	reg := &Reg{
-		N: fs.nreg,
-	}
+	reg := newReg(fs.nreg)
 	fs.nreg++
 	return reg
 }
@@ -64,8 +63,18 @@ func (fs *FuncState) constIndex(v types.Object) int {
 }
 
 func (fs *FuncState) bindLocVar(sym *types.Symbol) {
-	v := &types.LocVar{Name: sym.Name, Index: len(fs.Proto.LocVars)}
+	index := fs.nreg
+	v := &types.LocVar{Name: sym.Name, Index: index}
 	fs.Proto.LocVars[sym.Name] = v
+	fs.nreg++
+}
+
+func (fs *FuncState) findLocVar(sym *types.Symbol) *types.LocVar {
+	loc, ok := fs.Proto.LocVars[sym.Name]
+	if !ok {
+		return nil
+	}
+	return loc
 }
 
 func (c *Compiler) compileNumber(fs *FuncState, num types.Number) *Reg {
@@ -75,6 +84,9 @@ func (c *Compiler) compileNumber(fs *FuncState, num types.Number) *Reg {
 }
 
 func (c *Compiler) compileSymbol(fs *FuncState, sym *types.Symbol) *Reg {
+	if loc := fs.findLocVar(sym); loc != nil {
+		return newReg(loc.Index)
+	}
 	r1 := fs.newReg()
 	fs.addABx(GETGLOBAL, r1.N, fs.constIndex(types.String(sym.Name)))
 	return r1
