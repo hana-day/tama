@@ -10,6 +10,7 @@ const (
 	GETGLOBAL
 	SETGLOBAL
 	MOVE
+	CLOSURE
 	CALL
 )
 

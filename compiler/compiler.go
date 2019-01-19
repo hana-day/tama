@@ -63,6 +63,11 @@ func (fs *FuncState) constIndex(v types.Object) int {
 	return len(fs.Proto.Consts) - 1
 }
 
+func (fs *FuncState) bindLocVar(sym *types.Symbol) {
+	v := &types.LocVar{Name: sym.Name, Index: len(fs.Proto.LocVars)}
+	fs.Proto.LocVars[sym.Name] = v
+}
+
 func (c *Compiler) compileNumber(fs *FuncState, num types.Number) *Reg {
 	reg := fs.newReg()
 	fs.addABx(LOADK, reg.N, fs.constIndex(num))
@@ -106,41 +111,88 @@ func (c *Compiler) compileDefine(fs *FuncState, pair *types.Pair) (*Reg, error) 
 	return valueReg, nil
 }
 
-func (c *Compiler) compilePair(fs *FuncState, pair *types.Pair) (*Reg, error) {
-	v, err := types.Car(pair)
-	if err != nil {
-		return nil, err
+// (lambda (x y) ...)
+func (c *Compiler) compileLambda(fs *FuncState, pair *types.Pair) (*Reg, error) {
+	if pair.Len() < 3 {
+		return nil, c.error(fmt.Sprintf("invalid lambda %s", pair.String()))
 	}
-	first, ok := v.(*types.Symbol)
+	cdar, _ := types.Cdar(pair)
+	args, ok := cdar.(types.ArrayableObject)
 	if !ok {
-		return nil, c.error("invalid procedure name")
+		return nil, c.error(fmt.Sprintf("invalid lambda %s", pair.String()))
 	}
-	switch first.Name {
-	case "define":
-		return c.compileDefine(fs, pair)
-	default:
-		r1 := c.compileSymbol(fs, first)
-		cdr, err := types.Cdr(pair)
+	child := newFuncState(fs)
+	argsArr := args.Array()
+	argSyms := make([]*types.Symbol, len(argsArr))
+	for i, arg := range argsArr {
+		sym, ok := arg.(*types.Symbol)
+		if !ok {
+			return nil, c.error(fmt.Sprintf("invalid lambda %s", pair.String()))
+		}
+		argSyms[i] = sym
+	}
+	child.Proto.Args = argSyms
+	for _, arg := range child.Proto.Args {
+		child.bindLocVar(arg)
+	}
+	cddr, _ := types.Cddr(pair)
+	body, _ := types.Car(cddr)
+	c.compileObject(child, body)
+
+	protoIndex := len(fs.Proto.Protos)
+	fs.Proto.Protos = append(fs.Proto.Protos, child.Proto)
+	r := fs.newReg()
+	fs.addABx(CLOSURE, r.N, protoIndex)
+	return r, nil
+}
+
+func (c *Compiler) compileCall(fs *FuncState, proc *Reg, args types.ArrayableObject) (*Reg, error) {
+	argsArr := args.Array()
+	argRegs := make([]*Reg, len(argsArr))
+	for i := 0; i < len(argsArr); i++ {
+		argRegs[i] = fs.newReg()
+	}
+	for i, arg := range argsArr {
+		r, err := c.compileObject(fs, arg)
 		if err != nil {
 			return nil, err
 		}
-		args := cdr.(*types.Pair)
-		argsArr := args.ListToArray()
-		argRegs := make([]*Reg, len(argsArr))
-		for i := 0; i < len(argsArr); i++ {
-			argRegs[i] = fs.newReg()
-		}
-		for i, arg := range argsArr {
-			r, err := c.compileObject(fs, arg)
-			if err != nil {
-				return nil, err
-			}
-			fs.addABC(MOVE, argRegs[i].N, r.N, 0)
-		}
-		// Always return one value
-		fs.addABC(CALL, r1.N, 1+len(argsArr), 2)
-		return r1, nil
+		fs.addABC(MOVE, argRegs[i].N, r.N, 0)
 	}
+	// Always return one value
+	fs.addABC(CALL, proc.N, 1+len(argsArr), 2)
+	return proc, nil
+}
+
+func (c *Compiler) compilePair(fs *FuncState, pair *types.Pair) (*Reg, error) {
+	if pair.Len() == 0 {
+		return nil, c.error(fmt.Sprintf("invalid syntax %s", pair.String()))
+	}
+	cdr, _ := types.Cdr(pair)
+	args, ok := cdr.(types.ArrayableObject)
+	if !ok {
+		return nil, c.error(fmt.Sprintf("invalid syntax %s", pair.String()))
+	}
+	v, _ := types.Car(pair)
+	switch first := v.(type) {
+	case *types.Symbol:
+		switch first.Name {
+		case "define":
+			return c.compileDefine(fs, pair)
+		case "lambda":
+			return c.compileLambda(fs, pair)
+		default:
+			proc := c.compileSymbol(fs, first)
+			return c.compileCall(fs, proc, args)
+		}
+	case *types.Pair:
+		proc, err := c.compilePair(fs, first)
+		if err != nil {
+			return nil, err
+		}
+		return c.compileCall(fs, proc, args)
+	}
+	return nil, c.error(fmt.Sprintf("invalid procedure name %v", v))
 }
 
 func (c *Compiler) compileObject(fs *FuncState, obj types.Object) (*Reg, error) {

@@ -40,3 +40,10 @@ func TestList(t *testing.T) {
 	}
 
 }
+
+func TestLen(t *testing.T) {
+	list, _ := List(Number(1), Number(2)).(*Pair)
+	if l := list.Len(); l != 2 {
+		t.Fatalf("expected %d, but got %d", l, 2)
+	}
+}

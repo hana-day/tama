@@ -7,13 +7,14 @@ import (
 )
 
 func runVM(s *State) error {
-	ci, ok := s.CallInfos.Top().(*CallInfo)
-	if !ok {
-		return fmt.Errorf("vm: expected closure")
-	}
+	nexeccalls := 1
+reentry:
+	ci, _ := s.CallInfos.Top().(*CallInfo)
 	cl := ci.Cl
 	base := ci.Base
-	for _, inst := range cl.Proto.Insts {
+	for {
+		inst := cl.Proto.Insts[ci.Pc]
+		ci.Pc++
 		ra := base + compiler.GetArgA(inst)
 		switch compiler.GetOpCode(inst) {
 		case compiler.LOADK:
@@ -29,17 +30,35 @@ func runVM(s *State) error {
 		case compiler.MOVE:
 			rb := base + compiler.GetArgB(inst)
 			s.CallStack.Set(ra, s.CallStack.Get(rb))
+		case compiler.CLOSURE:
+			bx := compiler.GetArgBx(inst)
+			proto := cl.Proto.Protos[bx]
+			newCl := types.NewScmClosure()
+			newCl.Proto = proto
+			s.CallStack.Set(ra, newCl)
 		case compiler.CALL:
 			b := compiler.GetArgB(inst)
-			if b != 0 {
-				s.CallStack.SetSp(ra + b)
+			s.CallStack.SetSp(ra + b)
+			precalledCi, err := s.precall(ra)
+			if err != nil {
+				return err
 			}
-			if err := s.precall(ra); err != nil {
-				panic(err)
+			if !precalledCi.Cl.IsGo {
+				nexeccalls++
+				goto reentry
 			}
-			base = s.Base
 		case compiler.RETURN:
-			s.CallStack.SetSp(ra)
+			b := compiler.GetArgB(inst)
+			if b != 2 {
+				return fmt.Errorf("invalid number of returns")
+			}
+			s.postcall(ra)
+			nexeccalls--
+			if nexeccalls == 0 {
+				return nil
+			} else {
+				goto reentry
+			}
 		}
 	}
 	return nil

@@ -20,6 +20,15 @@ type Object interface {
 	Type() ObjectType
 }
 
+type Arrayable interface {
+	Array() []Object
+}
+
+type ArrayableObject interface {
+	Object
+	Arrayable
+}
+
 type (
 	Number  float64
 	String  string
@@ -56,9 +65,17 @@ func (s String) Type() ObjectType {
 	return TyString
 }
 
+type LocVar struct {
+	Name  String
+	Index int
+}
+
 type ClosureProto struct {
-	Insts  []uint32
-	Consts []Object
+	Insts   []uint32
+	Consts  []Object
+	Args    []*Symbol
+	LocVars map[String]*LocVar
+	Protos  []*ClosureProto // function prototypes inside the function
 }
 
 func (cl *Closure) String() string {
@@ -93,6 +110,10 @@ func (n *Nil) Type() ObjectType {
 	return TyNil
 }
 
+func (n *Nil) Array() []Object {
+	return []Object{}
+}
+
 var NilObject = &Nil{}
 
 func (p *Pair) String() string {
@@ -103,16 +124,7 @@ func (p *Pair) Type() ObjectType {
 	return TyPair
 }
 
-func (p *Pair) Len() int {
-	var cdr Object
-	len := 1
-	for cdr.Type() == TyPair {
-		len++
-	}
-	return len
-}
-
-func (p *Pair) ListToArray() []Object {
+func (p *Pair) Array() []Object {
 	arr := []Object{}
 	pair := p
 	for pair.Cdr.Type() != TyNil {
@@ -121,6 +133,17 @@ func (p *Pair) ListToArray() []Object {
 	}
 	arr = append(arr, pair.Car)
 	return arr
+}
+
+func (p *Pair) Len() int {
+	len := 1
+	cdr := p.Cdr
+	for cdr.Type() == TyPair {
+		len++
+		p := cdr.(*Pair)
+		cdr = p.Cdr
+	}
+	return len
 }
 
 func (s *Symbol) Type() ObjectType {

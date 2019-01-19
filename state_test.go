@@ -23,8 +23,8 @@ func TestExecuteString(t *testing.T) {
 		},
 		{
 			func() *State { return NewState() },
-			"(+ 1 2 3) (+ 1 2 3 4)",
-			"10",
+			"(+ 1 2 3 4) (+ 1 2 3)",
+			"6",
 		},
 		{
 			func() *State { return NewState() },
@@ -37,13 +37,14 @@ func TestExecuteString(t *testing.T) {
 		if err := s.ExecString(tc.source); err != nil {
 			t.Fatalf("case %d: unexpected error %v", i, err)
 		}
+		s.CallStack.Dump()
 		top := s.CallStack.Top()
 		v, ok := top.(types.Object)
 		if !ok {
 			t.Fatalf("case %d: unsupported object %v", i, top)
 		}
 		if v.String() != tc.resultString {
-			t.Fatalf("case %d: expected %s, but got %s", i, v.String(), tc.resultString)
+			t.Fatalf("case %d: expected %s, but got %s", i, tc.resultString, v.String())
 		}
 	}
 }
