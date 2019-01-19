@@ -129,12 +129,15 @@ func (c *Compiler) compileLambda(fs *FuncState, pair *types.Pair) (*Reg, error) 
 		return nil, c.error("invalid lambda %s", pair.String())
 	}
 	cdar, _ := types.Cdar(pair)
-	args, ok := cdar.(types.ArrayableObject)
+	args, ok := cdar.(types.SlicableObject)
 	if !ok {
 		return nil, c.error("invalid lambda %s", pair.String())
 	}
 	child := newFuncState(fs)
-	argsArr := args.Array()
+	argsArr, err := args.Slice()
+	if err != nil {
+		return nil, err
+	}
 	argSyms := make([]*types.Symbol, len(argsArr))
 	for i, arg := range argsArr {
 		sym, ok := arg.(*types.Symbol)
@@ -162,8 +165,11 @@ func (c *Compiler) compileLambda(fs *FuncState, pair *types.Pair) (*Reg, error) 
 	return r, nil
 }
 
-func (c *Compiler) compileCall(fs *FuncState, proc *Reg, args types.ArrayableObject) (*Reg, error) {
-	argsArr := args.Array()
+func (c *Compiler) compileCall(fs *FuncState, proc *Reg, args types.SlicableObject) (*Reg, error) {
+	argsArr, err := args.Slice()
+	if err != nil {
+		return nil, err
+	}
 	argRegs := make([]*Reg, len(argsArr))
 	for i := 0; i < len(argsArr); i++ {
 		argRegs[i] = fs.newReg()
@@ -185,7 +191,7 @@ func (c *Compiler) compilePair(fs *FuncState, pair *types.Pair) (*Reg, error) {
 		return nil, c.error("invalid syntax %s", pair.String())
 	}
 	cdr, _ := types.Cdr(pair)
-	args, ok := cdr.(types.ArrayableObject)
+	args, ok := cdr.(types.SlicableObject)
 	if !ok {
 		return nil, c.error("invalid syntax %s", pair.String())
 	}
