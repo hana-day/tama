@@ -137,7 +137,11 @@ func (c *Compiler) compileLambda(fs *FuncState, pair *types.Pair) (*Reg, error) 
 	}
 	cddr, _ := types.Cddr(pair)
 	body, _ := types.Car(cddr)
-	c.compileObject(child, body)
+	resultReg, err := c.compileObject(child, body)
+	if err != nil {
+		return nil, err
+	}
+	child.addABC(RETURN, resultReg.N, 2, 0)
 
 	protoIndex := len(fs.Proto.Protos)
 	fs.Proto.Protos = append(fs.Proto.Protos, child.Proto)

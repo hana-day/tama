@@ -31,6 +31,11 @@ func TestExecuteString(t *testing.T) {
 			"(define a 1) (+ a 1)",
 			"2",
 		},
+		{
+			func() *State { return NewState() },
+			"((lambda() (+ 1 2 3)))",
+			"6",
+		},
 	}
 	for i, tc := range testcases {
 		s := tc.stateFactory()
