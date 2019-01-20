@@ -7,13 +7,13 @@ package compiler
 import "fmt"
 
 const (
-	RETURN int = iota
-	LOADK
-	GETGLOBAL
-	SETGLOBAL
-	MOVE
-	CLOSURE
-	CALL
+	OP_RETURN int = iota
+	OP_LOADK
+	OP_GETGLOBAL
+	OP_SETGLOBAL
+	OP_MOVE
+	OP_CLOSURE
+	OP_CALL
 )
 
 type opType int

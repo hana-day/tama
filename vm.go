@@ -17,32 +17,32 @@ reentry:
 		ci.Pc++
 		ra := base + compiler.GetArgA(inst)
 		switch compiler.GetOpCode(inst) {
-		case compiler.LOADK:
+		case compiler.OP_LOADK:
 			bx := compiler.GetArgBx(inst)
 			s.CallStack.Set(ra, cl.Proto.Consts[bx])
 			if debug {
 				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, cl.Proto.Consts[bx])
 			}
-		case compiler.GETGLOBAL:
+		case compiler.OP_GETGLOBAL:
 			bx := compiler.GetArgBx(inst)
 			s.CallStack.Set(ra, s.Global[cl.Proto.Consts[bx].String()])
 			if debug {
 				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, s.Global[cl.Proto.Consts[bx].String()])
 			}
-		case compiler.SETGLOBAL:
+		case compiler.OP_SETGLOBAL:
 			bx := compiler.GetArgBx(inst)
 			obj := s.CallStack.Get(ra).(types.Object)
 			s.Global[cl.Proto.Consts[bx].String()] = obj
 			if debug {
 				fmt.Printf("%-20s ; Gbl[%v] = %v\n", compiler.DumpInst(inst), cl.Proto.Consts[bx].String(), obj)
 			}
-		case compiler.MOVE:
+		case compiler.OP_MOVE:
 			rb := base + compiler.GetArgB(inst)
 			s.CallStack.Set(ra, s.CallStack.Get(rb))
 			if debug {
 				fmt.Printf("%-20s ; R[%d] = R[%d]\n", compiler.DumpInst(inst), ra, rb)
 			}
-		case compiler.CLOSURE:
+		case compiler.OP_CLOSURE:
 			bx := compiler.GetArgBx(inst)
 			proto := cl.Proto.Protos[bx]
 			newCl := types.NewScmClosure()
@@ -51,7 +51,7 @@ reentry:
 			if debug {
 				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, newCl)
 			}
-		case compiler.CALL:
+		case compiler.OP_CALL:
 			b := compiler.GetArgB(inst)
 			s.CallStack.SetSp(ra + b - 1)
 			if debug {
@@ -66,7 +66,7 @@ reentry:
 				nexeccalls++
 				goto reentry
 			}
-		case compiler.RETURN:
+		case compiler.OP_RETURN:
 			b := compiler.GetArgB(inst)
 			if b != 2 {
 				return fmt.Errorf("vm: invalid number of returns")

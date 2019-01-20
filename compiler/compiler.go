@@ -75,7 +75,7 @@ func (c *Compiler) error(format string, a ...interface{}) error {
 
 func (c *Compiler) compileNumber(fs *funcState, num types.Number) *reg {
 	r := fs.newReg()
-	fs.addABx(LOADK, r.N, fs.constIndex(num))
+	fs.addABx(OP_LOADK, r.N, fs.constIndex(num))
 	return r
 }
 
@@ -84,7 +84,7 @@ func (c *Compiler) compileSymbol(fs *funcState, sym *types.Symbol) *reg {
 		return &reg{N: loc.Index}
 	}
 	r1 := fs.newReg()
-	fs.addABx(GETGLOBAL, r1.N, fs.constIndex(types.String(sym.Name)))
+	fs.addABx(OP_GETGLOBAL, r1.N, fs.constIndex(types.String(sym.Name)))
 	return r1
 }
 
@@ -110,12 +110,12 @@ func (c *Compiler) compileDefine(fs *funcState, pair *types.Pair) (*reg, error) 
 		return nil, c.error("The first argument of define must be a symbol")
 	}
 	nameR := fs.newReg()
-	fs.addABx(LOADK, nameR.N, fs.constIndex(sym.Name))
+	fs.addABx(OP_LOADK, nameR.N, fs.constIndex(sym.Name))
 	valueR, err := c.compileObject(fs, rest)
 	if err != nil {
 		return nil, err
 	}
-	fs.addABx(SETGLOBAL, valueR.N, nameR.N)
+	fs.addABx(OP_SETGLOBAL, valueR.N, nameR.N)
 	return valueR, nil
 }
 
@@ -152,12 +152,12 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 	if err != nil {
 		return nil, err
 	}
-	child.addABC(RETURN, resultR.N, 2, 0)
+	child.addABC(OP_RETURN, resultR.N, 2, 0)
 
 	protoIndex := len(fs.Proto.Protos)
 	fs.Proto.Protos = append(fs.Proto.Protos, child.Proto)
 	r := fs.newReg()
-	fs.addABx(CLOSURE, r.N, protoIndex)
+	fs.addABx(OP_CLOSURE, r.N, protoIndex)
 	return r, nil
 }
 
@@ -169,14 +169,14 @@ func (c *Compiler) compileCall(fs *funcState, proc *reg, args types.SlicableObje
 	for i, arg := range argsArr {
 		r, err := c.compileObject(fs, arg)
 		if proc.N+i+1 != r.N {
-			fs.addABC(MOVE, proc.N+i+1, r.N, 0)
+			fs.addABC(OP_MOVE, proc.N+i+1, r.N, 0)
 		}
 		if err != nil {
 			return nil, err
 		}
 	}
 	// Always return one value
-	fs.addABC(CALL, proc.N, 1+len(argsArr), 2)
+	fs.addABC(OP_CALL, proc.N, 1+len(argsArr), 2)
 	return proc, nil
 }
 
@@ -244,7 +244,7 @@ func Compile(objs []types.Object) (*types.Closure, error) {
 		return nil, err
 	}
 	lastR := regs[len(regs)-1]
-	fs.addABC(RETURN, lastR.N, 2, 0)
+	fs.addABC(OP_RETURN, lastR.N, 2, 0)
 
 	cl := types.NewScmClosure()
 	cl.Proto = fs.Proto

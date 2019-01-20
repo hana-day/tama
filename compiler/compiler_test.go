@@ -16,11 +16,11 @@ func TestCompileNumber(t *testing.T) {
 	if len(insts) != 2 {
 		t.Fatalf("expected %d, but got %d", 2, len(insts))
 	}
-	if opcode := GetOpCode(insts[0]); opcode != LOADK {
-		t.Fatalf("expected %d, but got %d", LOADK, opcode)
+	if opcode := GetOpCode(insts[0]); opcode != OP_LOADK {
+		t.Fatalf("expected %d, but got %d", OP_LOADK, opcode)
 	}
-	if opcode := GetOpCode(insts[1]); opcode != RETURN {
-		t.Fatalf("expected %d, but got %d", RETURN, opcode)
+	if opcode := GetOpCode(insts[1]); opcode != OP_RETURN {
+		t.Fatalf("expected %d, but got %d", OP_RETURN, opcode)
 	}
 }
 
@@ -31,7 +31,7 @@ func TestCompileSymbol(t *testing.T) {
 	if len(fs.Proto.Insts) != 1 {
 		t.Fatalf("expected %d, but got %d", 2, len(fs.Proto.Insts))
 	}
-	if opcode := GetOpCode(fs.Proto.Insts[0]); opcode != GETGLOBAL {
-		t.Fatalf("expected %d, but got %d", GETGLOBAL, opcode)
+	if opcode := GetOpCode(fs.Proto.Insts[0]); opcode != OP_GETGLOBAL {
+		t.Fatalf("expected %d, but got %d", OP_GETGLOBAL, opcode)
 	}
 }
