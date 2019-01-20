@@ -53,10 +53,10 @@ reentry:
 			}
 		case compiler.CALL:
 			b := compiler.GetArgB(inst)
-			s.CallStack.SetSp(ra + b)
+			s.CallStack.SetSp(ra + b - 1)
 			if debug {
 				cl := s.CallStack.Get(ra).(*types.Closure)
-				fmt.Printf("%-20s ; R[%d] = %v(%d...%d)\n", compiler.DumpInst(inst), ra, cl, ra, b)
+				fmt.Printf("%-20s ; R[%d] = %v(R[%d]...R[%d])\n", compiler.DumpInst(inst), ra, cl, ra+1, ra+b-1)
 			}
 			precalledCi, err := s.precall(ra)
 			if err != nil {

@@ -23,8 +23,13 @@ func TestExecuteString(t *testing.T) {
 		},
 		{
 			func() *State { return NewState() },
-			"(+ 1 2 3 4) (+ 1 2 3)",
-			"6",
+			"(+ 1 2 3 4)",
+			"10",
+		},
+		{
+			func() *State { return NewState() },
+			"(+ 1 (+ 2 3) 4)",
+			"10",
 		},
 		{
 			func() *State { return NewState() },

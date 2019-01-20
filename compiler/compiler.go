@@ -166,16 +166,14 @@ func (c *Compiler) compileCall(fs *funcState, proc *reg, args types.SlicableObje
 	if err != nil {
 		return nil, err
 	}
-	argRegs := make([]*reg, len(argsArr))
-	for i := 0; i < len(argsArr); i++ {
-		argRegs[i] = fs.newReg()
-	}
 	for i, arg := range argsArr {
 		r, err := c.compileObject(fs, arg)
+		if proc.N+i+1 != r.N {
+			fs.addABC(MOVE, proc.N+i+1, r.N, 0)
+		}
 		if err != nil {
 			return nil, err
 		}
-		fs.addABC(MOVE, argRegs[i].N, r.N, 0)
 	}
 	// Always return one value
 	fs.addABC(CALL, proc.N, 1+len(argsArr), 2)

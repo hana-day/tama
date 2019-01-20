@@ -51,7 +51,7 @@ func (s *State) precall(clIndex int) (*CallInfo, error) {
 	if cl.IsGo {
 		ci := &CallInfo{Cl: cl, Base: clIndex + 1, Func: clIndex}
 		s.CallInfos.Push(ci)
-		nargs := types.Number(s.CallStack.Sp() - clIndex - 1)
+		nargs := types.Number(s.CallStack.Sp() - clIndex)
 		s.CallStack.Push(nargs)
 
 		fn, ok := cl.Fn.(func(s *State))
