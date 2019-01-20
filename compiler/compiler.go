@@ -161,23 +161,43 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 	return r, nil
 }
 
-func (c *Compiler) compileCall(fs *funcState, proc *reg, args types.SlicableObject) (*reg, error) {
+func (c *Compiler) compileBegin(fs *funcState, pair *types.Pair) (*reg, error) {
+	if pair.Len() < 2 {
+		return nil, c.error("invalid begin %s", pair.String())
+	}
+	cdr, _ := types.Cdr(pair)
+	exprs, err := cdr.(*types.Pair).Slice()
+	if err != nil {
+		return nil, err
+	}
+	regs, err := c.compileObjects(fs, exprs)
+	if err != nil {
+		return nil, err
+	}
+	return regs[len(regs)-1], nil
+}
+
+func (c *Compiler) compileCall(fs *funcState, proc types.Object, args types.SlicableObject) (*reg, error) {
+	procR, err := c.compileObject(fs, proc)
+	if err != nil {
+		return nil, err
+	}
 	argsArr, err := args.Slice()
 	if err != nil {
 		return nil, err
 	}
 	for i, arg := range argsArr {
 		r, err := c.compileObject(fs, arg)
-		if proc.N+i+1 != r.N {
-			fs.addABC(OP_MOVE, proc.N+i+1, r.N, 0)
+		if procR.N+i+1 != r.N {
+			fs.addABC(OP_MOVE, procR.N+i+1, r.N, 0)
 		}
 		if err != nil {
 			return nil, err
 		}
 	}
 	// Always return one value
-	fs.addABC(OP_CALL, proc.N, 1+len(argsArr), 2)
-	return proc, nil
+	fs.addABC(OP_CALL, procR.N, 1+len(argsArr), 2)
+	return procR, nil
 }
 
 func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
@@ -197,16 +217,13 @@ func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
 			return c.compileDefine(fs, pair)
 		case "lambda":
 			return c.compileLambda(fs, pair)
+		case "begin":
+			return c.compileBegin(fs, pair)
 		default: // (procedure-name args...)
-			proc := c.compileSymbol(fs, first)
-			return c.compileCall(fs, proc, args)
+			return c.compileCall(fs, first, args)
 		}
 	case *types.Pair: // ((procedure-name args...) args...)
-		proc, err := c.compilePair(fs, first)
-		if err != nil {
-			return nil, err
-		}
-		return c.compileCall(fs, proc, args)
+		return c.compileCall(fs, first, args)
 	}
 	return nil, c.error("invalid procedure name %v", v)
 }
