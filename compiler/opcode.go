@@ -4,6 +4,8 @@
 
 package compiler
 
+import "fmt"
+
 const (
 	RETURN int = iota
 	LOADK
@@ -13,6 +15,37 @@ const (
 	CLOSURE
 	CALL
 )
+
+type opType int
+
+const (
+	opTypeABC opType = iota
+	opTypeABx
+	opTypeASbx
+)
+
+type opProp struct {
+	Name string
+	Type opType
+}
+
+var opProps = []opProp{
+	opProp{"RETURN", opTypeABC},
+	opProp{"LOADK", opTypeABx},
+	opProp{"GETGLOBAL", opTypeABx},
+	opProp{"SETGLOBAL", opTypeABx},
+	opProp{"MOVE", opTypeABC},
+	opProp{"CLOSURE", opTypeABx},
+	opProp{"CALL", opTypeABC},
+}
+
+func GetOpType(inst uint32) opType {
+	return opProps[GetOpCode(inst)].Type
+}
+
+func GetOpName(inst uint32) string {
+	return opProps[GetOpCode(inst)].Name
+}
 
 func GetOpCode(inst uint32) int {
 	return int(inst >> 26)
@@ -69,4 +102,30 @@ func CreateABx(op int, a int, bx int) uint32 {
 	SetArgA(&inst, a)
 	SetArgBx(&inst, bx)
 	return inst
+}
+
+func dumpABC(inst uint32) string {
+	opname := GetOpName(inst)
+	a := GetArgA(inst)
+	b := GetArgB(inst)
+	c := GetArgC(inst)
+	return fmt.Sprintf("%s %d %d %d", opname, a, b, c)
+}
+
+func dumpABx(inst uint32) string {
+	opname := GetOpName(inst)
+	a := GetArgA(inst)
+	bx := GetArgBx(inst)
+	return fmt.Sprintf("%s %d %d", opname, a, bx)
+}
+
+func DumpInst(inst uint32) string {
+	switch GetOpType(inst) {
+	case opTypeABC:
+		return dumpABC(inst)
+	case opTypeABx:
+		return dumpABx(inst)
+	default:
+		panic("unsupported optype")
+	}
 }
