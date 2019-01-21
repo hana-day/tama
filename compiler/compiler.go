@@ -20,22 +20,64 @@ type reg struct {
 	N int // register number
 }
 
-type locVar struct {
-	Name  types.String
-	Index int
+type nameStorage struct {
+	names    []types.String
+	len      int
+	capacity int
 }
 
-type upValue struct {
-	Name  types.String
-	Index int
+func newNameStorage(cap int) *nameStorage {
+	return &nameStorage{
+		names:    make([]types.String, cap),
+		len:      0,
+		capacity: cap,
+	}
+}
+
+func (ns *nameStorage) Len() int {
+	return ns.len
+}
+
+func (ns *nameStorage) Capacity() int {
+	return ns.capacity
+}
+
+func (ns *nameStorage) Find(name types.String) int {
+	for i, nm := range ns.names {
+		if nm == name {
+			return i
+		}
+	}
+	return -1
+}
+
+func (ns *nameStorage) grow() {
+	if ns.len >= ns.capacity {
+		ns.capacity = (ns.capacity + 1) * 2
+		newOne := make([]types.String, ns.capacity)
+		copy(newOne, ns.names)
+		ns.names = newOne
+	}
+}
+
+func (ns *nameStorage) Register(name types.String) int {
+	i := ns.Find(name)
+	if i >= 0 {
+		return i
+	}
+	ns.grow()
+	l := ns.len
+	ns.names[l] = name
+	ns.len++
+	return l
 }
 
 type funcState struct {
 	Proto   *types.ClosureProto // current function header
 	nreg    int                 // number of registers
 	prev    *funcState          // enclosing function
-	locVars map[types.String]*locVar
-	UpVals  map[types.String]*upValue
+	locVars *nameStorage
+	UpVals  *nameStorage
 }
 
 func newFuncState(prev *funcState) *funcState {
@@ -43,8 +85,8 @@ func newFuncState(prev *funcState) *funcState {
 		Proto:   types.NewClosureProto(),
 		nreg:    0,
 		prev:    prev,
-		locVars: map[types.String]*locVar{},
-		UpVals:  map[types.String]*upValue{},
+		locVars: newNameStorage(16),
+		UpVals:  newNameStorage(16),
 	}
 }
 
@@ -77,36 +119,21 @@ func (fs *funcState) constIndex(v types.Object) int {
 }
 
 func (fs *funcState) bindLocVar(name types.String) {
-	index := fs.nreg
-	v := &locVar{Name: name, Index: index}
-	fs.locVars[name] = v
+	fs.locVars.Register(name)
 	fs.nreg++
 }
 
-func (fs *funcState) findLocVar(name types.String) *locVar {
-	loc, ok := fs.locVars[name]
-	if !ok {
-		return nil
-	}
-	return loc
+func (fs *funcState) findLocVar(name types.String) int {
+	return fs.locVars.Find(name)
 }
 
 func (fs *funcState) upValueIndex(name types.String) int {
-	uv, ok := fs.UpVals[name]
-	if ok {
-		return uv.Index
-	}
-	index := len(fs.UpVals)
-	fs.UpVals[name] = &upValue{
-		Name:  name,
-		Index: index,
-	}
-	return index
+	return fs.UpVals.Find(name)
 }
 
 func (fs *funcState) getVarType(sym *types.Symbol) varType {
 	for cur := fs; cur != nil; cur = cur.prev {
-		if loc := fs.findLocVar(sym.Name); loc != nil {
+		if index := fs.findLocVar(sym.Name); index > -1 {
 			if cur == fs {
 				return varLocVar
 			}
@@ -129,8 +156,8 @@ func (c *Compiler) compileNumber(fs *funcState, num types.Number) *reg {
 func (c *Compiler) compileSymbol(fs *funcState, sym *types.Symbol) *reg {
 	switch fs.getVarType(sym) {
 	case varLocVar:
-		loc := fs.findLocVar(sym.Name)
-		return &reg{N: loc.Index}
+		index := fs.findLocVar(sym.Name)
+		return &reg{N: index}
 	case varGlobal:
 		r := fs.newReg()
 		fs.addABx(OP_GETGLOBAL, r.N, fs.constIndex(sym.Name))

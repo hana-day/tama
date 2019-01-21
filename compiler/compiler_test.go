@@ -35,3 +35,24 @@ func TestCompileSymbol(t *testing.T) {
 		t.Fatalf("expected %d, but got %d", OP_GETGLOBAL, opcode)
 	}
 }
+
+func TestNameStorage(t *testing.T) {
+	ns := newNameStorage(0)
+	if ns.Find("test") != -1 {
+		t.Fatalf("unexpected index")
+	}
+	i := ns.Register("test")
+	if i != 0 {
+		t.Fatalf("expected %d, but got %d", 0, i)
+	}
+	i = ns.Find("test")
+	if i != 0 {
+		t.Fatalf("expected %d, but got %d", 0, i)
+	}
+	if ns.Capacity() != 2 {
+		t.Fatalf("expected %d, but got %d", 2, ns.Capacity())
+	}
+	if ns.Len() != 1 {
+		t.Fatalf("expected %d, but got %d", 1, ns.Len())
+	}
+}
