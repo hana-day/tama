@@ -35,7 +35,7 @@ type funcState struct {
 	nreg    int                 // number of registers
 	prev    *funcState          // enclosing function
 	locVars map[types.String]*locVar
-	upVals  map[types.String]*upValue
+	UpVals  map[types.String]*upValue
 }
 
 func newFuncState(prev *funcState) *funcState {
@@ -44,7 +44,7 @@ func newFuncState(prev *funcState) *funcState {
 		nreg:    0,
 		prev:    prev,
 		locVars: map[types.String]*locVar{},
-		upVals:  map[types.String]*upValue{},
+		UpVals:  map[types.String]*upValue{},
 	}
 }
 
@@ -76,24 +76,37 @@ func (fs *funcState) constIndex(v types.Object) int {
 	return len(fs.Proto.Consts) - 1
 }
 
-func (fs *funcState) bindLocVar(sym *types.Symbol) {
+func (fs *funcState) bindLocVar(name types.String) {
 	index := fs.nreg
-	v := &locVar{Name: sym.Name, Index: index}
-	fs.locVars[sym.Name] = v
+	v := &locVar{Name: name, Index: index}
+	fs.locVars[name] = v
 	fs.nreg++
 }
 
-func (fs *funcState) findLocVar(sym *types.Symbol) *locVar {
-	loc, ok := fs.locVars[sym.Name]
+func (fs *funcState) findLocVar(name types.String) *locVar {
+	loc, ok := fs.locVars[name]
 	if !ok {
 		return nil
 	}
 	return loc
 }
 
+func (fs *funcState) upValueIndex(name types.String) int {
+	uv, ok := fs.UpVals[name]
+	if ok {
+		return uv.Index
+	}
+	index := len(fs.UpVals)
+	fs.UpVals[name] = &upValue{
+		Name:  name,
+		Index: index,
+	}
+	return index
+}
+
 func (fs *funcState) getVarType(sym *types.Symbol) varType {
 	for cur := fs; cur != nil; cur = cur.prev {
-		if loc := fs.findLocVar(sym); loc != nil {
+		if loc := fs.findLocVar(sym.Name); loc != nil {
 			if cur == fs {
 				return varLocVar
 			}
@@ -116,12 +129,16 @@ func (c *Compiler) compileNumber(fs *funcState, num types.Number) *reg {
 func (c *Compiler) compileSymbol(fs *funcState, sym *types.Symbol) *reg {
 	switch fs.getVarType(sym) {
 	case varLocVar:
-		loc := fs.findLocVar(sym)
+		loc := fs.findLocVar(sym.Name)
 		return &reg{N: loc.Index}
 	case varGlobal:
-		r1 := fs.newReg()
-		fs.addABx(OP_GETGLOBAL, r1.N, fs.constIndex(types.String(sym.Name)))
-		return r1
+		r := fs.newReg()
+		fs.addABx(OP_GETGLOBAL, r.N, fs.constIndex(sym.Name))
+		return r
+	case varUpValue:
+		r := fs.newReg()
+		fs.addABC(OP_GETUPVAL, r.N, fs.upValueIndex(sym.Name), 0)
+		return r
 	default:
 		return nil
 	}
@@ -183,7 +200,7 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 	}
 	child.Proto.Args = argSyms
 	for _, arg := range child.Proto.Args {
-		child.bindLocVar(arg)
+		child.bindLocVar(arg.Name)
 	}
 	cddr, _ := types.Cddr(pair)
 	body, _ := types.Car(cddr)
