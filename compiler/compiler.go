@@ -8,6 +8,14 @@ import (
 type Compiler struct {
 }
 
+type varType int
+
+const (
+	varGlobal varType = iota
+	varUpValue
+	varLocVar
+)
+
 type reg struct {
 	N int // register number
 }
@@ -17,11 +25,17 @@ type locVar struct {
 	Index int
 }
 
+type upValue struct {
+	Name  types.String
+	Index int
+}
+
 type funcState struct {
 	Proto   *types.ClosureProto // current function header
 	nreg    int                 // number of registers
 	prev    *funcState          // enclosing function
 	locVars map[types.String]*locVar
+	upVals  map[types.String]*upValue
 }
 
 func newFuncState(prev *funcState) *funcState {
@@ -30,6 +44,7 @@ func newFuncState(prev *funcState) *funcState {
 		nreg:    0,
 		prev:    prev,
 		locVars: map[types.String]*locVar{},
+		upVals:  map[types.String]*upValue{},
 	}
 }
 
@@ -76,6 +91,18 @@ func (fs *funcState) findLocVar(sym *types.Symbol) *locVar {
 	return loc
 }
 
+func (fs *funcState) getVarType(sym *types.Symbol) varType {
+	for cur := fs; cur != nil; cur = cur.prev {
+		if loc := fs.findLocVar(sym); loc != nil {
+			if cur == fs {
+				return varLocVar
+			}
+			return varUpValue
+		}
+	}
+	return varGlobal
+}
+
 func (c *Compiler) error(format string, a ...interface{}) error {
 	return fmt.Errorf("compiler: %s", fmt.Sprintf(format, a...))
 }
@@ -87,12 +114,17 @@ func (c *Compiler) compileNumber(fs *funcState, num types.Number) *reg {
 }
 
 func (c *Compiler) compileSymbol(fs *funcState, sym *types.Symbol) *reg {
-	if loc := fs.findLocVar(sym); loc != nil {
+	switch fs.getVarType(sym) {
+	case varLocVar:
+		loc := fs.findLocVar(sym)
 		return &reg{N: loc.Index}
+	case varGlobal:
+		r1 := fs.newReg()
+		fs.addABx(OP_GETGLOBAL, r1.N, fs.constIndex(types.String(sym.Name)))
+		return r1
+	default:
+		return nil
 	}
-	r1 := fs.newReg()
-	fs.addABx(OP_GETGLOBAL, r1.N, fs.constIndex(types.String(sym.Name)))
-	return r1
 }
 
 // Compile define syntax
