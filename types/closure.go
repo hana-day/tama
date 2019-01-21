@@ -10,24 +10,17 @@ type Closure struct {
 	Fn interface{}
 }
 
-type LocVar struct {
-	Name  String
-	Index int
-}
-
 type ClosureProto struct {
-	Insts   []uint32
-	Consts  []Object
-	Args    []*Symbol
-	LocVars map[String]*LocVar
-	Protos  []*ClosureProto // function prototypes inside the function
+	Insts  []uint32
+	Consts []Object
+	Args   []*Symbol
+	Protos []*ClosureProto // function prototypes inside the function
 }
 
 func NewClosureProto() *ClosureProto {
 	return &ClosureProto{
-		Insts:   []uint32{},
-		Consts:  []Object{},
-		LocVars: map[String]*LocVar{},
+		Insts:  []uint32{},
+		Consts: []Object{},
 	}
 }
 

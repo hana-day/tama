@@ -12,17 +12,24 @@ type reg struct {
 	N int // register number
 }
 
+type locVar struct {
+	Name  types.String
+	Index int
+}
+
 type funcState struct {
-	Proto *types.ClosureProto // current function header
-	nreg  int                 // number of registers
-	prev  *funcState          // enclosing function
+	Proto   *types.ClosureProto // current function header
+	nreg    int                 // number of registers
+	prev    *funcState          // enclosing function
+	locVars map[types.String]*locVar
 }
 
 func newFuncState(prev *funcState) *funcState {
 	return &funcState{
-		Proto: types.NewClosureProto(),
-		nreg:  0,
-		prev:  prev,
+		Proto:   types.NewClosureProto(),
+		nreg:    0,
+		prev:    prev,
+		locVars: map[types.String]*locVar{},
 	}
 }
 
@@ -56,13 +63,13 @@ func (fs *funcState) constIndex(v types.Object) int {
 
 func (fs *funcState) bindLocVar(sym *types.Symbol) {
 	index := fs.nreg
-	v := &types.LocVar{Name: sym.Name, Index: index}
-	fs.Proto.LocVars[sym.Name] = v
+	v := &locVar{Name: sym.Name, Index: index}
+	fs.locVars[sym.Name] = v
 	fs.nreg++
 }
 
-func (fs *funcState) findLocVar(sym *types.Symbol) *types.LocVar {
-	loc, ok := fs.Proto.LocVars[sym.Name]
+func (fs *funcState) findLocVar(sym *types.Symbol) *locVar {
+	loc, ok := fs.locVars[sym.Name]
 	if !ok {
 		return nil
 	}
