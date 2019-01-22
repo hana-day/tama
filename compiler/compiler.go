@@ -17,7 +17,7 @@ const (
 )
 
 type reg struct {
-	N int // register number
+	n int // register number
 }
 
 type nameStorage struct {
@@ -77,33 +77,33 @@ func (ns *nameStorage) Register(name types.String) int {
 }
 
 type funcState struct {
-	Proto         *types.ClosureProto // current function header
+	proto         *types.ClosureProto // current function header
 	nreg          int                 // number of registers
 	prev          *funcState          // enclosing function
 	locVars       *nameStorage
-	UpVals        *nameStorage
+	upVals        *nameStorage
 	closeRequired bool // whether upvalues inside the function need to be closed or
 }
 
 func newFuncState(prev *funcState) *funcState {
 	return &funcState{
-		Proto:         types.NewClosureProto(),
+		proto:         types.NewClosureProto(),
 		nreg:          0,
 		prev:          prev,
 		locVars:       newNameStorage(16),
-		UpVals:        newNameStorage(16),
+		upVals:        newNameStorage(16),
 		closeRequired: false,
 	}
 }
 
 func (fs *funcState) newReg() *reg {
-	r := &reg{N: fs.nreg}
+	r := &reg{n: fs.nreg}
 	fs.nreg++
 	return r
 }
 
 func (fs *funcState) add(inst uint32) {
-	fs.Proto.Insts = append(fs.Proto.Insts, inst)
+	fs.proto.Insts = append(fs.proto.Insts, inst)
 }
 
 func (fs *funcState) addABx(op int, a int, bx int) {
@@ -115,13 +115,13 @@ func (fs *funcState) addABC(op int, a int, b int, c int) {
 }
 
 func (fs *funcState) constIndex(v types.Object) int {
-	for i, cs := range fs.Proto.Consts {
+	for i, cs := range fs.proto.Consts {
 		if cs == v {
 			return i
 		}
 	}
-	fs.Proto.Consts = append(fs.Proto.Consts, v)
-	return len(fs.Proto.Consts) - 1
+	fs.proto.Consts = append(fs.proto.Consts, v)
+	return len(fs.proto.Consts) - 1
 }
 
 func (fs *funcState) bindLocVar(name types.String) {
@@ -134,9 +134,9 @@ func (fs *funcState) findLocVar(name types.String) int {
 }
 
 func (fs *funcState) upValueIndex(name types.String) int {
-	i := fs.UpVals.Find(name)
+	i := fs.upVals.Find(name)
 	if i < 0 {
-		return fs.UpVals.Register(name)
+		return fs.upVals.Register(name)
 	}
 	return i
 }
@@ -159,7 +159,7 @@ func (c *Compiler) error(format string, a ...interface{}) error {
 
 func (c *Compiler) compileNumber(fs *funcState, num types.Number) *reg {
 	r := fs.newReg()
-	fs.addABx(OP_LOADK, r.N, fs.constIndex(num))
+	fs.addABx(OP_LOADK, r.n, fs.constIndex(num))
 	return r
 }
 
@@ -167,14 +167,14 @@ func (c *Compiler) compileSymbol(fs *funcState, sym *types.Symbol) *reg {
 	switch fs.getVarType(sym) {
 	case varLocVar:
 		index := fs.findLocVar(sym.Name)
-		return &reg{N: index}
+		return &reg{n: index}
 	case varGlobal:
 		r := fs.newReg()
-		fs.addABx(OP_GETGLOBAL, r.N, fs.constIndex(sym.Name))
+		fs.addABx(OP_GETGLOBAL, r.n, fs.constIndex(sym.Name))
 		return r
 	case varUpValue:
 		r := fs.newReg()
-		fs.addABC(OP_GETUPVAL, r.N, fs.upValueIndex(sym.Name), 0)
+		fs.addABC(OP_GETUPVAL, r.n, fs.upValueIndex(sym.Name), 0)
 		return r
 	default:
 		return nil
@@ -203,12 +203,12 @@ func (c *Compiler) compileDefine(fs *funcState, pair *types.Pair) (*reg, error) 
 		return nil, c.error("The first argument of define must be a symbol")
 	}
 	nameR := fs.newReg()
-	fs.addABx(OP_LOADK, nameR.N, fs.constIndex(sym.Name))
+	fs.addABx(OP_LOADK, nameR.n, fs.constIndex(sym.Name))
 	valueR, err := c.compileObject(fs, rest)
 	if err != nil {
 		return nil, err
 	}
-	fs.addABx(OP_SETGLOBAL, valueR.N, nameR.N)
+	fs.addABx(OP_SETGLOBAL, valueR.n, nameR.n)
 	return valueR, nil
 }
 
@@ -235,8 +235,8 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 		}
 		argSyms[i] = sym
 	}
-	child.Proto.Args = argSyms
-	for _, arg := range child.Proto.Args {
+	child.proto.Args = argSyms
+	for _, arg := range child.proto.Args {
 		child.bindLocVar(arg.Name)
 	}
 	cddr, _ := types.Cddr(pair)
@@ -248,16 +248,16 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 	if child.closeRequired {
 		child.addABC(OP_CLOSE, child.locVars.Len()-1, 0, 0)
 	}
-	child.addABC(OP_RETURN, resultR.N, 2, 0)
+	child.addABC(OP_RETURN, resultR.n, 2, 0)
 
-	child.Proto.NUpVals = child.UpVals.Len()
-	protoIndex := len(fs.Proto.Protos)
-	fs.Proto.Protos = append(fs.Proto.Protos, child.Proto)
+	child.proto.NUpVals = child.upVals.Len()
+	protoIndex := len(fs.proto.Protos)
+	fs.proto.Protos = append(fs.proto.Protos, child.proto)
 	r := fs.newReg()
-	fs.addABx(OP_CLOSURE, r.N, protoIndex)
+	fs.addABx(OP_CLOSURE, r.n, protoIndex)
 
-	for i := 0; i < child.UpVals.Len(); i++ {
-		uvName := child.UpVals.Name(i)
+	for i := 0; i < child.upVals.Len(); i++ {
+		uvName := child.upVals.Name(i)
 		locIndex := fs.findLocVar(uvName)
 		if locIndex > -1 {
 			fs.addABC(OP_MOVE, 0, locIndex, 0)
@@ -266,7 +266,7 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 		}
 		uvIndex := fs.upValueIndex(uvName)
 		if uvIndex < 0 {
-			uvIndex = fs.UpVals.Register(uvName)
+			uvIndex = fs.upVals.Register(uvName)
 		}
 		fs.addABC(OP_GETUPVAL, 0, uvIndex, 0)
 	}
@@ -302,7 +302,7 @@ func (c *Compiler) compileCall(fs *funcState, proc types.Object, args types.Slic
 	// Arrange closure and arguments registers in the order.
 	// TODO: Too verbose?
 	newProcR := fs.newReg()
-	fs.addABC(OP_MOVE, newProcR.N, procR.N, 0)
+	fs.addABC(OP_MOVE, newProcR.n, procR.n, 0)
 	regs := make([]*reg, len(argsArr))
 	for i, _ := range argsArr {
 		regs[i] = fs.newReg()
@@ -313,10 +313,10 @@ func (c *Compiler) compileCall(fs *funcState, proc types.Object, args types.Slic
 		if err != nil {
 			return nil, err
 		}
-		fs.addABC(OP_MOVE, regs[i].N, r.N, 0)
+		fs.addABC(OP_MOVE, regs[i].n, r.n, 0)
 	}
 	// Always return one value
-	fs.addABC(OP_CALL, newProcR.N, 1+len(argsArr), 2)
+	fs.addABC(OP_CALL, newProcR.n, 1+len(argsArr), 2)
 	return newProcR, nil
 }
 
@@ -381,8 +381,8 @@ func Compile(objs []types.Object) (*types.Closure, error) {
 		return nil, err
 	}
 	lastR := regs[len(regs)-1]
-	fs.addABC(OP_RETURN, lastR.N, 2, 0)
+	fs.addABC(OP_RETURN, lastR.n, 2, 0)
 
-	cl := types.NewScmClosure(fs.Proto, 0)
+	cl := types.NewScmClosure(fs.proto, 0)
 	return cl, nil
 }

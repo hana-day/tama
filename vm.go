@@ -13,11 +13,11 @@ reentry:
 		fmt.Println("[Enter function]")
 	}
 	ci, _ := s.CallInfos.Top().(*CallInfo)
-	cl := ci.Cl
-	base := ci.Base
+	cl := ci.cl
+	base := ci.base
 	for {
-		inst := cl.Proto.Insts[ci.Pc]
-		ci.Pc++
+		inst := cl.Proto.Insts[ci.pc]
+		ci.pc++
 		ra := base + compiler.GetArgA(inst)
 		switch compiler.GetOpCode(inst) {
 		case compiler.OP_LOADK:
@@ -54,8 +54,8 @@ reentry:
 				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, newCl)
 			}
 			for i := 0; i < proto.NUpVals; i++ {
-				inst = ci.Cl.Proto.Insts[ci.Pc]
-				ci.Pc++
+				inst = ci.cl.Proto.Insts[ci.pc]
+				ci.pc++
 				b := compiler.GetArgB(inst)
 				switch compiler.GetOpCode(inst) {
 				case compiler.OP_MOVE:
@@ -65,7 +65,7 @@ reentry:
 						fmt.Printf("%-20s ; Up[%d] = R[%d]\n", compiler.DumpInst(inst), i, base+b)
 					}
 				case compiler.OP_GETUPVAL:
-					newCl.UpVals[i] = ci.Cl.UpVals[b]
+					newCl.UpVals[i] = ci.cl.UpVals[b]
 					if debug {
 						fmt.Printf("%-20s ; Up[%d] = Up[%d]\n", compiler.DumpInst(inst), i, b)
 					}
@@ -83,7 +83,7 @@ reentry:
 			if err != nil {
 				return err
 			}
-			if !precalledCi.Cl.IsGo {
+			if !precalledCi.cl.IsGo {
 				nexeccalls++
 				goto reentry
 			}
@@ -104,7 +104,7 @@ reentry:
 			}
 		case compiler.OP_GETUPVAL:
 			b := compiler.GetArgB(inst)
-			uv := ci.Cl.UpVals[b]
+			uv := ci.cl.UpVals[b]
 			v := uv.Value(s.CallStack)
 			s.CallStack.Set(ra, v)
 			if debug {

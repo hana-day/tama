@@ -28,10 +28,10 @@ func TestCompileSymbol(t *testing.T) {
 	fs := newFuncState(nil)
 	c := &Compiler{}
 	c.compileSymbol(fs, &types.Symbol{Name: "test"})
-	if len(fs.Proto.Insts) != 1 {
-		t.Fatalf("expected %d, but got %d", 2, len(fs.Proto.Insts))
+	if len(fs.proto.Insts) != 1 {
+		t.Fatalf("expected %d, but got %d", 2, len(fs.proto.Insts))
 	}
-	if opcode := GetOpCode(fs.Proto.Insts[0]); opcode != OP_GETGLOBAL {
+	if opcode := GetOpCode(fs.proto.Insts[0]); opcode != OP_GETGLOBAL {
 		t.Fatalf("expected %d, but got %d", OP_GETGLOBAL, opcode)
 	}
 }
