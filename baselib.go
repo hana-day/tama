@@ -5,8 +5,7 @@ import (
 )
 
 func (s *State) OpenBase() *State {
-	cl := types.NewGoClosure()
-	cl.Fn = fnAdd
+	cl := types.NewGoClosure(fnAdd)
 	s.Global["+"] = cl
 	return s
 }

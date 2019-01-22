@@ -9,6 +9,9 @@ import (
 func runVM(s *State, debug bool) error {
 	nexeccalls := 1
 reentry:
+	if debug {
+		fmt.Println("[Enter function]")
+	}
 	ci, _ := s.CallInfos.Top().(*CallInfo)
 	cl := ci.Cl
 	base := ci.Base
@@ -45,12 +48,30 @@ reentry:
 		case compiler.OP_CLOSURE:
 			bx := compiler.GetArgBx(inst)
 			proto := cl.Proto.Protos[bx]
-			newCl := types.NewScmClosure()
-			newCl.Proto = proto
+			newCl := types.NewScmClosure(proto, proto.NUpVals)
 			s.CallStack.Set(ra, newCl)
 			if debug {
 				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, newCl)
 			}
+			for i := 0; i < proto.NUpVals; i++ {
+				inst = ci.Cl.Proto.Insts[ci.Pc]
+				ci.Pc++
+				b := compiler.GetArgB(inst)
+				switch compiler.GetOpCode(inst) {
+				case compiler.OP_MOVE:
+					uv := s.findUpValue(base + b)
+					newCl.UpVals[i] = uv
+					if debug {
+						fmt.Printf("%-20s ; Up[%d] = R[%d]\n", compiler.DumpInst(inst), i, base+b)
+					}
+				case compiler.OP_GETUPVAL:
+					newCl.UpVals[i] = ci.Cl.UpVals[b]
+					if debug {
+						fmt.Printf("%-20s ; Up[%d] = Up[%d]\n", compiler.DumpInst(inst), i, b)
+					}
+				}
+			}
+
 		case compiler.OP_CALL:
 			b := compiler.GetArgB(inst)
 			s.CallStack.SetSp(ra + b - 1)
@@ -80,6 +101,19 @@ reentry:
 				return nil
 			} else {
 				goto reentry
+			}
+		case compiler.OP_GETUPVAL:
+			b := compiler.GetArgB(inst)
+			uv := ci.Cl.UpVals[b]
+			v := uv.Value(s.CallStack)
+			s.CallStack.Set(ra, v)
+			if debug {
+				fmt.Printf("%-20s ; R[%d] = %s\n", compiler.DumpInst(inst), ra, v.(types.Object).String())
+			}
+		case compiler.OP_CLOSE:
+			s.closeUpValues(ra)
+			if debug {
+				fmt.Printf("%-20s ; close %d\n", compiler.DumpInst(inst), ra)
 			}
 		}
 	}

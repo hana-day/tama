@@ -15,6 +15,7 @@ const (
 	OP_CLOSURE
 	OP_CALL
 	OP_GETUPVAL
+	OP_CLOSE
 )
 
 type opType int
@@ -39,6 +40,7 @@ var opProps = []opProp{
 	opProp{"CLOSURE", opTypeABx},
 	opProp{"CALL", opTypeABC},
 	opProp{"GETUPVAL", opTypeABC},
+	opProp{"CLOSE", opTypeABC},
 }
 
 func GetOpType(inst uint32) opType {

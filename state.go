@@ -21,6 +21,7 @@ type State struct {
 	CallStack *types.Stack
 	CallInfos *types.Stack
 	Global    map[string]types.Object
+	uvhead    *types.UpValue
 }
 
 func NewState() *State {
@@ -90,4 +91,48 @@ func (s *State) ExecString(source string) error {
 	}
 	s.CallStack.Push(cl)
 	return s.call(0)
+}
+
+func (s *State) findUpValue(level int) *types.UpValue {
+	var prev *types.UpValue
+	var next *types.UpValue
+	if s.uvhead != nil {
+		for uv := s.uvhead; uv != nil; uv = uv.Next {
+			if uv.Index == level {
+				return uv
+			}
+			if uv.Index > level {
+				next = uv
+				break
+			}
+			prev = uv
+		}
+	}
+	uv := &types.UpValue{Index: level, Closed: false}
+	if prev != nil {
+		prev.Next = uv
+	} else {
+		s.uvhead = uv
+	}
+	if next != nil {
+		uv.Next = next
+	}
+	return uv
+}
+
+func (s *State) closeUpValues(idx int) {
+	if s.uvhead != nil {
+		var prev *types.UpValue
+		for uv := s.uvhead; uv != nil; uv = uv.Next {
+			if uv.Index >= idx {
+				if prev != nil {
+					prev.Next = nil
+				} else {
+					s.uvhead = nil
+				}
+				uv.Close(s.CallStack)
+			}
+			prev = uv
+		}
+	}
 }

@@ -42,6 +42,10 @@ func (ns *nameStorage) Capacity() int {
 	return ns.capacity
 }
 
+func (ns *nameStorage) Name(index int) types.String {
+	return ns.names[index]
+}
+
 func (ns *nameStorage) Find(name types.String) int {
 	for i, nm := range ns.names {
 		if nm == name {
@@ -73,20 +77,22 @@ func (ns *nameStorage) Register(name types.String) int {
 }
 
 type funcState struct {
-	Proto   *types.ClosureProto // current function header
-	nreg    int                 // number of registers
-	prev    *funcState          // enclosing function
-	locVars *nameStorage
-	UpVals  *nameStorage
+	Proto         *types.ClosureProto // current function header
+	nreg          int                 // number of registers
+	prev          *funcState          // enclosing function
+	locVars       *nameStorage
+	UpVals        *nameStorage
+	closeRequired bool // whether upvalues inside the function need to be closed or
 }
 
 func newFuncState(prev *funcState) *funcState {
 	return &funcState{
-		Proto:   types.NewClosureProto(),
-		nreg:    0,
-		prev:    prev,
-		locVars: newNameStorage(16),
-		UpVals:  newNameStorage(16),
+		Proto:         types.NewClosureProto(),
+		nreg:          0,
+		prev:          prev,
+		locVars:       newNameStorage(16),
+		UpVals:        newNameStorage(16),
+		closeRequired: false,
 	}
 }
 
@@ -128,12 +134,16 @@ func (fs *funcState) findLocVar(name types.String) int {
 }
 
 func (fs *funcState) upValueIndex(name types.String) int {
-	return fs.UpVals.Find(name)
+	i := fs.UpVals.Find(name)
+	if i < 0 {
+		return fs.UpVals.Register(name)
+	}
+	return i
 }
 
 func (fs *funcState) getVarType(sym *types.Symbol) varType {
 	for cur := fs; cur != nil; cur = cur.prev {
-		if index := fs.findLocVar(sym.Name); index > -1 {
+		if index := cur.findLocVar(sym.Name); index > -1 {
 			if cur == fs {
 				return varLocVar
 			}
@@ -235,12 +245,31 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 	if err != nil {
 		return nil, err
 	}
+	if child.closeRequired {
+		child.addABC(OP_CLOSE, child.locVars.Len()-1, 0, 0)
+	}
 	child.addABC(OP_RETURN, resultR.N, 2, 0)
 
+	child.Proto.NUpVals = child.UpVals.Len()
 	protoIndex := len(fs.Proto.Protos)
 	fs.Proto.Protos = append(fs.Proto.Protos, child.Proto)
 	r := fs.newReg()
 	fs.addABx(OP_CLOSURE, r.N, protoIndex)
+
+	for i := 0; i < child.UpVals.Len(); i++ {
+		uvName := child.UpVals.Name(i)
+		locIndex := fs.findLocVar(uvName)
+		if locIndex > -1 {
+			fs.addABC(OP_MOVE, 0, locIndex, 0)
+			fs.closeRequired = true
+			continue
+		}
+		uvIndex := fs.upValueIndex(uvName)
+		if uvIndex < 0 {
+			uvIndex = fs.UpVals.Register(uvName)
+		}
+		fs.addABC(OP_GETUPVAL, 0, uvIndex, 0)
+	}
 	return r, nil
 }
 
@@ -346,7 +375,6 @@ func Compile(objs []types.Object) (*types.Closure, error) {
 	lastR := regs[len(regs)-1]
 	fs.addABC(OP_RETURN, lastR.N, 2, 0)
 
-	cl := types.NewScmClosure()
-	cl.Proto = fs.Proto
+	cl := types.NewScmClosure(fs.Proto, 0)
 	return cl, nil
 }
