@@ -17,6 +17,8 @@ type State struct {
 	uvhead    *types.UpValue
 }
 
+type GoFunc = func(s *State, args []types.Object) (types.Object, error)
+
 func NewState() *State {
 	s := &State{
 		CallStack: types.NewStack(DefaultStackSize),
@@ -37,6 +39,21 @@ func (s *State) LoadString(source string) (*types.Closure, error) {
 	return compiler.Compile(f.Objs)
 }
 
+// precall prepares the function call.
+// If the function is a scheme-function, push call information onto the stack.
+// If the function is a go-function, push call information onto the stack and call it.
+//
+// Before precalling, the stack contents must be like below.
+//
+//      |            |
+//      +------------+
+//      | closure    |
+//      | argument 1 |
+//      |     ...    |
+//      | argument N |
+// SP ->+------------+
+//      |            |
+//
 func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 	cl, ok := s.CallStack.Get(clIndex).(*types.Closure)
 	if !ok {
@@ -45,14 +62,23 @@ func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 	if cl.IsGo {
 		ci := &types.CallInfo{Cl: cl, Base: clIndex + 1, FuncSp: clIndex}
 		s.CallInfos.Push(ci)
-		nargs := types.Number(s.CallStack.Sp() - clIndex)
-		s.CallStack.Push(nargs)
 
-		fn, ok := cl.Fn.(func(s *State))
+		fn, ok := cl.Fn.(GoFunc)
 		if !ok {
 			return nil, fmt.Errorf("invalid function %v", cl.Fn)
 		}
-		fn(s)
+		nargs := s.CallStack.Sp() - clIndex
+		args := make([]types.Object, nargs)
+		topSp := s.CallStack.Sp()
+		for i := 0; i < nargs; i++ {
+			args[i] = s.CallStack.Get(topSp - nargs + i + 1)
+		}
+		retval, err := fn(s, args)
+		if err != nil {
+			return nil, err
+		}
+		s.CallStack.SetSp(clIndex)
+		s.CallStack.Push(retval)
 		s.postcall(s.CallStack.Sp())
 		return ci, nil
 	} else {
@@ -130,7 +156,7 @@ func (s *State) closeUpValues(idx int) {
 	}
 }
 
-func (s *State) RegisterFunc(name string, fn func(*State)) {
+func (s *State) RegisterFunc(name string, fn GoFunc) {
 	cl := types.NewGoClosure(name, fn)
 	s.Global[name] = cl
 }
