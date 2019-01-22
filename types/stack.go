@@ -2,17 +2,8 @@ package types
 
 import "fmt"
 
-type valueType interface{}
-
-type Element struct {
-	Value valueType
-
-	// The stack to which this element belongs.
-	stack *Stack
-}
-
 type Stack struct {
-	arr []*Element
+	arr []Object
 	sp  int
 	len int
 }
@@ -22,13 +13,13 @@ func NewStack(defaultLen int) *Stack {
 }
 
 func (s *Stack) Init(defaultLen int) *Stack {
-	s.arr = make([]*Element, defaultLen)
+	s.arr = make([]Object, defaultLen)
 	s.sp = -1
 	s.len = defaultLen
 	return s
 }
 
-func (s *Stack) Top() valueType {
+func (s *Stack) Top() Object {
 	return s.Get(s.sp)
 }
 
@@ -44,40 +35,34 @@ func (s *Stack) Len() int {
 	return s.len
 }
 
-func (s *Stack) Push(value valueType) {
+func (s *Stack) Push(obj Object) {
 	s.sp++
-	s.arr[s.sp] = &Element{
-		Value: value,
-		stack: s,
-	}
+	s.arr[s.sp] = obj
 }
 
-func (s *Stack) Pop() valueType {
+func (s *Stack) Pop() Object {
 	if s.sp < 0 {
 		return nil
 	}
-	v := s.Get(s.sp)
+	obj := s.Get(s.sp)
 	s.arr[s.sp] = nil
 	s.sp--
-	return v
+	return obj
 }
 
-func (s *Stack) Get(i int) valueType {
+func (s *Stack) Get(i int) Object {
 	if i >= 0 && i < s.len {
-		v := s.arr[i]
-		if v == nil {
+		obj := s.arr[i]
+		if obj == nil {
 			return nil
 		}
-		return v.Value
+		return obj
 	}
 	return nil
 }
 
-func (s *Stack) Set(i int, v valueType) {
-	s.arr[i] = &Element{
-		Value: v,
-		stack: s,
-	}
+func (s *Stack) Set(i int, obj Object) {
+	s.arr[i] = obj
 }
 
 func (s *Stack) Dump() {

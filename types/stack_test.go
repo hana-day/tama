@@ -16,13 +16,13 @@ func TestNewStack(t *testing.T) {
 
 func TestStackPushAndPop(t *testing.T) {
 	s := NewStack(100)
-	s.Push(1)
-	i, ok := s.Pop().(int)
-	if !ok {
+	s.Push(Number(1))
+	num := s.Pop()
+	if num == nil {
 		t.Fatalf("unexpected value")
 	}
-	if i != 1 {
-		t.Fatalf("expected %d, but got %d", 1, i)
+	if num.String() != "1" {
+		t.Fatalf("expected %s, but got %s", "1", num.String())
 	}
 	if s.Pop() != nil {
 		t.Fatalf("expected nil")

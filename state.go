@@ -9,13 +9,6 @@ import (
 
 var DefaultStackSize = 256 * 20
 
-type CallInfo struct {
-	funcSp int // function sp
-	base   int // local sp
-	cl     *types.Closure
-	pc     int
-}
-
 type State struct {
 	// call stack
 	CallStack *types.Stack
@@ -44,13 +37,13 @@ func (s *State) LoadString(source string) (*types.Closure, error) {
 	return compiler.Compile(f.Objs)
 }
 
-func (s *State) precall(clIndex int) (*CallInfo, error) {
+func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 	cl, ok := s.CallStack.Get(clIndex).(*types.Closure)
 	if !ok {
 		return nil, fmt.Errorf("function is not loaded")
 	}
 	if cl.IsGo {
-		ci := &CallInfo{cl: cl, base: clIndex + 1, funcSp: clIndex}
+		ci := &types.CallInfo{Cl: cl, Base: clIndex + 1, FuncSp: clIndex}
 		s.CallInfos.Push(ci)
 		nargs := types.Number(s.CallStack.Sp() - clIndex)
 		s.CallStack.Push(nargs)
@@ -63,17 +56,17 @@ func (s *State) precall(clIndex int) (*CallInfo, error) {
 		s.postcall(s.CallStack.Sp())
 		return ci, nil
 	} else {
-		ci := &CallInfo{cl: cl, base: clIndex + 1, funcSp: clIndex}
+		ci := &types.CallInfo{Cl: cl, Base: clIndex + 1, FuncSp: clIndex}
 		s.CallInfos.Push(ci)
 		return ci, nil
 	}
 }
 
 func (s *State) postcall(resultSp int) {
-	curCi := s.CallInfos.Pop().(*CallInfo) // pop current call info
+	curCi := s.CallInfos.Pop().(*types.CallInfo) // pop current call info
 	result := s.CallStack.Get(resultSp)
-	s.CallStack.Set(curCi.funcSp, result)
-	s.CallStack.SetSp(curCi.funcSp)
+	s.CallStack.Set(curCi.FuncSp, result)
+	s.CallStack.SetSp(curCi.FuncSp)
 }
 
 func (s *State) call(nargs int) error {

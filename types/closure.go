@@ -77,3 +77,18 @@ func NewGoClosure(name string, fn interface{}) *Closure {
 		fnName: name,
 	}
 }
+
+type CallInfo struct {
+	FuncSp int // function sp
+	Base   int // local sp
+	Cl     *Closure
+	Pc     int
+}
+
+func (ci *CallInfo) Type() ObjectType {
+	return TyCallInfo
+}
+
+func (ci *CallInfo) String() string {
+	return fmt.Sprintf("call info for %s", ci.Cl.String())
+}

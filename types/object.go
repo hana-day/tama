@@ -13,6 +13,8 @@ const (
 	TyNil
 	TySymbol
 	TyPair
+
+	TyCallInfo // for internal use
 )
 
 type Object interface {

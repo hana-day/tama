@@ -12,12 +12,12 @@ reentry:
 	if debug {
 		fmt.Println("[Enter function]")
 	}
-	ci, _ := s.CallInfos.Top().(*CallInfo)
-	cl := ci.cl
-	base := ci.base
+	ci, _ := s.CallInfos.Top().(*types.CallInfo)
+	cl := ci.Cl
+	base := ci.Base
 	for {
-		inst := cl.Proto.Insts[ci.pc]
-		ci.pc++
+		inst := cl.Proto.Insts[ci.Pc]
+		ci.Pc++
 		ra := base + compiler.GetArgA(inst)
 		switch compiler.GetOpCode(inst) {
 		case compiler.OP_LOADK:
@@ -34,7 +34,7 @@ reentry:
 			}
 		case compiler.OP_SETGLOBAL:
 			bx := compiler.GetArgBx(inst)
-			obj := s.CallStack.Get(ra).(types.Object)
+			obj := s.CallStack.Get(ra)
 			s.Global[cl.Proto.Consts[bx].String()] = obj
 			if debug {
 				fmt.Printf("%-20s ; Gbl[%v] = %v\n", compiler.DumpInst(inst), cl.Proto.Consts[bx].String(), obj)
@@ -54,8 +54,8 @@ reentry:
 				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, newCl)
 			}
 			for i := 0; i < proto.NUpVals; i++ {
-				inst = ci.cl.Proto.Insts[ci.pc]
-				ci.pc++
+				inst = ci.Cl.Proto.Insts[ci.Pc]
+				ci.Pc++
 				b := compiler.GetArgB(inst)
 				switch compiler.GetOpCode(inst) {
 				case compiler.OP_MOVE:
@@ -65,7 +65,7 @@ reentry:
 						fmt.Printf("%-20s ; Up[%d] = R[%d]\n", compiler.DumpInst(inst), i, base+b)
 					}
 				case compiler.OP_GETUPVAL:
-					newCl.UpVals[i] = ci.cl.UpVals[b]
+					newCl.UpVals[i] = ci.Cl.UpVals[b]
 					if debug {
 						fmt.Printf("%-20s ; Up[%d] = Up[%d]\n", compiler.DumpInst(inst), i, b)
 					}
@@ -76,14 +76,14 @@ reentry:
 			b := compiler.GetArgB(inst)
 			s.CallStack.SetSp(ra + b - 1)
 			if debug {
-				cl := s.CallStack.Get(ra).(*types.Closure)
+				cl := s.CallStack.Get(ra)
 				fmt.Printf("%-20s ; R[%d] = %v(R[%d]...R[%d])\n", compiler.DumpInst(inst), ra, cl, ra+1, ra+b-1)
 			}
 			precalledCi, err := s.precall(ra)
 			if err != nil {
 				return err
 			}
-			if !precalledCi.cl.IsGo {
+			if !precalledCi.Cl.IsGo {
 				nexeccalls++
 				goto reentry
 			}
@@ -104,11 +104,11 @@ reentry:
 			}
 		case compiler.OP_GETUPVAL:
 			b := compiler.GetArgB(inst)
-			uv := ci.cl.UpVals[b]
+			uv := ci.Cl.UpVals[b]
 			v := uv.Value(s.CallStack)
 			s.CallStack.Set(ra, v)
 			if debug {
-				fmt.Printf("%-20s ; R[%d] = %s\n", compiler.DumpInst(inst), ra, v.(types.Object).String())
+				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, v)
 			}
 		case compiler.OP_CLOSE:
 			s.closeUpValues(ra)
