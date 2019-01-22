@@ -136,3 +136,8 @@ func (s *State) closeUpValues(idx int) {
 		}
 	}
 }
+
+func (s *State) RegisterFunc(name string, fn func(*State)) {
+	cl := types.NewGoClosure(name, fn)
+	s.Global[name] = cl
+}

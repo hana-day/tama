@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 type UpValue struct {
 	Next   *UpValue
 	Index  int
@@ -27,7 +29,8 @@ type Closure struct {
 	Proto *ClosureProto
 
 	// go closure only
-	Fn interface{}
+	Fn     interface{}
+	fnName string
 
 	UpVals []*UpValue
 }
@@ -50,7 +53,7 @@ func NewClosureProto() *ClosureProto {
 
 func (cl *Closure) String() string {
 	if cl.IsGo {
-		return "closure (go func)"
+		return fmt.Sprintf("closure (go func '%s')", cl.fnName)
 	}
 	return "closure"
 }
@@ -67,9 +70,10 @@ func NewScmClosure(proto *ClosureProto, nUpVals int) *Closure {
 	}
 }
 
-func NewGoClosure(fn interface{}) *Closure {
+func NewGoClosure(name string, fn interface{}) *Closure {
 	return &Closure{
-		IsGo: true,
-		Fn:   fn,
+		IsGo:   true,
+		Fn:     fn,
+		fnName: name,
 	}
 }

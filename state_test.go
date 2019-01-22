@@ -61,20 +61,25 @@ func TestExecuteString(t *testing.T) {
 			"((lambda (a) (+ a 1) (+ a 2)) 1)",
 			"3",
 		},
+		{
+			func() *State { return NewState() },
+			"((lambda (a) (+ (car a) (cdr a))) (cons 1 2))",
+			"3",
+		},
 	}
 	for i, tc := range testcases {
 		s := tc.stateFactory()
 		if err := s.ExecString(tc.source); err != nil {
-			t.Fatalf("case %d: unexpected error %v", i, err)
+			t.Fatalf("case %d: unexpected error %v ;  source: %s", i, err, tc.source)
 		}
 		s.CallStack.Dump()
 		top := s.CallStack.Top()
 		v, ok := top.(types.Object)
 		if !ok {
-			t.Fatalf("case %d: unsupported object %v", i, top)
+			t.Fatalf("case %d: unsupported object %v ; source: %s", i, top, tc.source)
 		}
 		if v.String() != tc.resultString {
-			t.Fatalf("case %d: expected %s, but got %s", i, tc.resultString, v.String())
+			t.Fatalf("case %d: expected %s, but got %s ; source %s", i, tc.resultString, v.String(), tc.source)
 		}
 	}
 }
