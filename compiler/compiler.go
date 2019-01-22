@@ -240,7 +240,7 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 		child.bindLocVar(arg.Name)
 	}
 	cddr, _ := types.Cddr(pair)
-	body, _ := types.Car(cddr)
+	body := types.Cons(&types.Symbol{Name: "begin"}, cddr)
 	resultR, err := c.compileObject(child, body)
 	if err != nil {
 		return nil, err
@@ -298,18 +298,26 @@ func (c *Compiler) compileCall(fs *funcState, proc types.Object, args types.Slic
 	if err != nil {
 		return nil, err
 	}
+
+	// Arrange closure and arguments registers in the order.
+	// TODO: Too verbose?
+	newProcR := fs.newReg()
+	fs.addABC(OP_MOVE, newProcR.N, procR.N, 0)
+	regs := make([]*reg, len(argsArr))
+	for i, _ := range argsArr {
+		regs[i] = fs.newReg()
+	}
+
 	for i, arg := range argsArr {
 		r, err := c.compileObject(fs, arg)
-		if procR.N+i+1 != r.N {
-			fs.addABC(OP_MOVE, procR.N+i+1, r.N, 0)
-		}
 		if err != nil {
 			return nil, err
 		}
+		fs.addABC(OP_MOVE, regs[i].N, r.N, 0)
 	}
 	// Always return one value
-	fs.addABC(OP_CALL, procR.N, 1+len(argsArr), 2)
-	return procR, nil
+	fs.addABC(OP_CALL, newProcR.N, 1+len(argsArr), 2)
+	return newProcR, nil
 }
 
 func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
