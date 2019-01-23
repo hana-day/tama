@@ -87,6 +87,15 @@ func (p *Parser) parseObject() (types.Object, error) {
 		return p.parsePair()
 	case scanner.IDENT:
 		return p.parseIdent()
+	case scanner.QUOTE: // '(1 2 3) => (quote (1 2 3))
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		obj, err := p.parseObject()
+		if err != nil {
+			return nil, err
+		}
+		return types.List(&types.Symbol{"quote"}, obj), nil
 	default:
 		return nil, p.error("unexpected token %d", p.tok)
 

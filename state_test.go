@@ -91,6 +91,11 @@ func TestExecuteString(t *testing.T) {
 			"(car (quote (1 2 3)))",
 			"1",
 		},
+		{
+			func() *State { return NewState() },
+			"(car '(1 2 3))",
+			"1",
+		},
 	}
 	for i, tc := range testcases {
 		s := tc.stateFactory()

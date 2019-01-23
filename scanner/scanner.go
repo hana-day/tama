@@ -88,6 +88,8 @@ func (s *Scanner) Scan() (tok Token, lit string, err error) {
 		tok = LPAREN
 	case ')':
 		tok = RPAREN
+	case '\'':
+		tok = QUOTE
 	default:
 		return ILLEGAL, "", fmt.Errorf("scanner: unexpected token %c", ch)
 	}
