@@ -196,16 +196,15 @@ func (c *Compiler) compileGlobalAssign(fs *funcState, varname *types.Symbol, val
 // Compile define syntax
 //
 // (define a 1)
-func (c *Compiler) compileDefine(fs *funcState, pair *types.Pair) (*reg, error) {
-	if pair.Len() != 3 {
+func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, error) {
+	if len(args) != 2 {
 		return nil, c.error("define: invalid syntax")
 	}
-	second, _ := pair.Second()
-	varname, ok := second.(*types.Symbol)
+	varname, ok := args[0].(*types.Symbol)
 	if !ok {
 		return nil, c.error("define: invalid syntax")
 	}
-	expr, _ := pair.Third()
+	expr := args[1]
 	r, err := c.compileGlobalAssign(fs, varname, expr)
 	if err != nil {
 		return nil, err
@@ -214,14 +213,13 @@ func (c *Compiler) compileDefine(fs *funcState, pair *types.Pair) (*reg, error) 
 }
 
 // (lambda (x y) ...)
-func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) {
-	if pair.Len() < 3 {
-		return nil, c.error("invalid lambda %s", pair.String())
+func (c *Compiler) compileLambda(fs *funcState, lambdaArgs []types.Object) (*reg, error) {
+	if len(lambdaArgs) < 2 {
+		return nil, c.error("lambda: invalid syntax")
 	}
-	second, _ := pair.Second()
-	args, ok := second.(types.SlicableObject)
+	args, ok := lambdaArgs[0].(types.SlicableObject)
 	if !ok {
-		return nil, c.error("invalid lambda %s", pair.String())
+		return nil, c.error("lambda: invalid syntax")
 	}
 	child := newFuncState(fs)
 	argsArr, err := args.Slice()
@@ -232,7 +230,7 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 	for i, arg := range argsArr {
 		sym, ok := arg.(*types.Symbol)
 		if !ok {
-			return nil, c.error("invalid lambda %s", pair.String())
+			return nil, c.error("lambda: invalid syntax")
 		}
 		argSyms[i] = sym
 	}
@@ -240,9 +238,7 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 	for _, arg := range child.proto.Args {
 		child.bindLocVar(arg.Name)
 	}
-	cddr, _ := pair.Cddr()
-	body := types.Cons(&types.Symbol{Name: "begin"}, cddr)
-	resultR, err := c.compileObject(child, body)
+	resultR, err := c.compileBegin(child, lambdaArgs[1:])
 	if err != nil {
 		return nil, err
 	}
@@ -274,32 +270,26 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 	return r, nil
 }
 
-func (c *Compiler) compileBegin(fs *funcState, pair *types.Pair) (*reg, error) {
-	if pair.Len() < 2 {
-		return nil, c.error("invalid begin %s", pair.String())
+func (c *Compiler) compileBegin(fs *funcState, args []types.Object) (*reg, error) {
+	if len(args) == 0 {
+		return nil, c.error("begin: invalid syntax")
 	}
-	cdr := pair.Cdr()
-	exprs, err := cdr.(*types.Pair).Slice()
-	if err != nil {
-		return nil, err
-	}
-	regs, err := c.compileObjects(fs, exprs)
+	regs, err := c.compileObjects(fs, args)
 	if err != nil {
 		return nil, err
 	}
 	return regs[len(regs)-1], nil
 }
 
-func (c *Compiler) compileSet(fs *funcState, pair *types.Pair) (*reg, error) {
-	if pair.Len() != 3 {
+func (c *Compiler) compileSet(fs *funcState, args []types.Object) (*reg, error) {
+	if len(args) != 2 {
 		return nil, c.error("set!: invalid syntax")
 	}
-	second, _ := pair.Second()
-	varname, ok := second.(*types.Symbol)
+	varname, ok := args[0].(*types.Symbol)
 	if !ok {
 		return nil, c.error("set!: invalid syntax")
 	}
-	expr, _ := pair.Third()
+	expr := args[1]
 	switch fs.getVarType(varname) {
 	case varLocVar:
 		index := fs.findLocVar(varname.Name)
@@ -325,12 +315,8 @@ func (c *Compiler) compileSet(fs *funcState, pair *types.Pair) (*reg, error) {
 	return nil, c.error("set!: unsupported var type")
 }
 
-func (c *Compiler) compileCall(fs *funcState, proc types.Object, args types.SlicableObject) (*reg, error) {
+func (c *Compiler) compileCall(fs *funcState, proc types.Object, args []types.Object) (*reg, error) {
 	procR, err := c.compileObject(fs, proc)
-	if err != nil {
-		return nil, err
-	}
-	argsArr, err := args.Slice()
 	if err != nil {
 		return nil, err
 	}
@@ -339,12 +325,12 @@ func (c *Compiler) compileCall(fs *funcState, proc types.Object, args types.Slic
 	// TODO: Too verbose?
 	newProcR := fs.newReg()
 	fs.addABC(OP_MOVE, newProcR.n, procR.n, 0)
-	regs := make([]*reg, len(argsArr))
-	for i, _ := range argsArr {
+	regs := make([]*reg, len(args))
+	for i, _ := range args {
 		regs[i] = fs.newReg()
 	}
 
-	for i, arg := range argsArr {
+	for i, arg := range args {
 		r, err := c.compileObject(fs, arg)
 		if err != nil {
 			return nil, err
@@ -352,7 +338,7 @@ func (c *Compiler) compileCall(fs *funcState, proc types.Object, args types.Slic
 		fs.addABC(OP_MOVE, regs[i].n, r.n, 0)
 	}
 	// Always return one value
-	fs.addABC(OP_CALL, newProcR.n, 1+len(argsArr), 2)
+	fs.addABC(OP_CALL, newProcR.n, 1+len(args), 2)
 	return newProcR, nil
 }
 
@@ -365,23 +351,27 @@ func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
 	if !ok {
 		return nil, c.error("invalid syntax %s", pair.String())
 	}
+	argsArr, err := args.Slice()
+	if err != nil {
+		return nil, err
+	}
 	v := pair.Car()
 	switch first := v.(type) {
 	case *types.Symbol:
 		switch first.Name {
 		case "define":
-			return c.compileDefine(fs, pair)
+			return c.compileDefine(fs, argsArr)
 		case "lambda":
-			return c.compileLambda(fs, pair)
+			return c.compileLambda(fs, argsArr)
 		case "begin":
-			return c.compileBegin(fs, pair)
+			return c.compileBegin(fs, argsArr)
 		case "set!":
-			return c.compileSet(fs, pair)
+			return c.compileSet(fs, argsArr)
 		default: // (procedure-name args...)
-			return c.compileCall(fs, first, args)
+			return c.compileCall(fs, first, argsArr)
 		}
 	case *types.Pair: // ((procedure-name args...) args...)
-		return c.compileCall(fs, first, args)
+		return c.compileCall(fs, first, argsArr)
 	}
 	return nil, c.error("invalid procedure name %v", v)
 }
