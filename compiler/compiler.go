@@ -124,9 +124,10 @@ func (fs *funcState) constIndex(v types.Object) int {
 	return len(fs.proto.Consts) - 1
 }
 
-func (fs *funcState) bindLocVar(name types.String) {
+func (fs *funcState) bindLocVar(name types.String) int {
 	fs.locVars.Register(name)
 	fs.nreg++
+	return fs.nreg - 1
 }
 
 func (fs *funcState) findLocVar(name types.String) int {
@@ -181,35 +182,36 @@ func (c *Compiler) compileSymbol(fs *funcState, sym *types.Symbol) *reg {
 	}
 }
 
-// Compile define syntax
-//
-// (define a 1)
-func (c *Compiler) compileDefine(fs *funcState, pair *types.Pair) (*reg, error) {
-	errobj := c.error("invalid define")
-	cdar, err := types.Cdar(pair)
-	if err != nil {
-		return nil, errobj
-	}
-	cddr, err := types.Cddr(pair)
-	if err != nil {
-		return nil, errobj
-	}
-	rest, err := types.Car(cddr)
-	if err != nil {
-		return nil, errobj
-	}
-	sym, ok := cdar.(*types.Symbol)
-	if !ok {
-		return nil, c.error("The first argument of define must be a symbol")
-	}
+func (c *Compiler) compileGlobalAssign(fs *funcState, varname *types.Symbol, value types.Object) (*reg, error) {
 	nameR := fs.newReg()
-	fs.addABx(OP_LOADK, nameR.n, fs.constIndex(sym.Name))
-	valueR, err := c.compileObject(fs, rest)
+	fs.addABx(OP_LOADK, nameR.n, fs.constIndex(varname.Name))
+	valueR, err := c.compileObject(fs, value)
 	if err != nil {
 		return nil, err
 	}
 	fs.addABx(OP_SETGLOBAL, valueR.n, nameR.n)
 	return valueR, nil
+}
+
+// Compile define syntax
+//
+// (define a 1)
+func (c *Compiler) compileDefine(fs *funcState, pair *types.Pair) (*reg, error) {
+	if pair.Len() != 3 {
+		return nil, c.error("define: invalid syntax")
+	}
+	cdar, _ := types.Cdar(pair)
+	varname, ok := cdar.(*types.Symbol)
+	if !ok {
+		return nil, c.error("define: invalid syntax")
+	}
+	cddr, _ := types.Cddr(pair)
+	expr, _ := types.Car(cddr)
+	r, err := c.compileGlobalAssign(fs, varname, expr)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 // (lambda (x y) ...)
@@ -289,6 +291,28 @@ func (c *Compiler) compileBegin(fs *funcState, pair *types.Pair) (*reg, error) {
 	return regs[len(regs)-1], nil
 }
 
+func (c *Compiler) compileSet(fs *funcState, pair *types.Pair) (*reg, error) {
+	if pair.Len() != 3 {
+		return nil, c.error("set!: invalid syntax")
+	}
+	cdar, _ := types.Cdar(pair)
+	varname, ok := cdar.(*types.Symbol)
+	cddr, _ := types.Cddr(pair)
+	expr, _ := types.Car(cddr)
+	if !ok {
+		return nil, c.error("set!: invalid syntax")
+	}
+	switch fs.getVarType(varname) {
+	case varLocVar:
+		return nil, nil
+	case varGlobal:
+		return c.compileGlobalAssign(fs, varname, expr)
+	case varUpValue:
+		return nil, nil
+	}
+	return nil, c.error("set!: unsupported var type")
+}
+
 func (c *Compiler) compileCall(fs *funcState, proc types.Object, args types.SlicableObject) (*reg, error) {
 	procR, err := c.compileObject(fs, proc)
 	if err != nil {
@@ -339,6 +363,8 @@ func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
 			return c.compileLambda(fs, pair)
 		case "begin":
 			return c.compileBegin(fs, pair)
+		case "set!":
+			return c.compileSet(fs, pair)
 		default: // (procedure-name args...)
 			return c.compileCall(fs, first, args)
 		}

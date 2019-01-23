@@ -66,6 +66,11 @@ func TestExecuteString(t *testing.T) {
 			"((lambda (a) (+ (car a) (cdr a))) (cons 1 2))",
 			"3",
 		},
+		{
+			func() *State { return NewState() },
+			"(set! a 1) a",
+			"1",
+		},
 	}
 	for i, tc := range testcases {
 		s := tc.stateFactory()
