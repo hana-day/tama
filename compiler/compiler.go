@@ -336,6 +336,15 @@ func (c *Compiler) compileSet(fs *funcState, args []types.Object) (*reg, error) 
 	return nil, c.error("set!: unsupported var type")
 }
 
+func (c *Compiler) compileQuote(fs *funcState, argsArr []types.Object) (*reg, error) {
+	if len(argsArr) != 1 {
+		return nil, fmt.Errorf("quote: invalid syntax")
+	}
+	r := fs.newReg()
+	fs.addABx(OP_LOADK, r.n, fs.constIndex(argsArr[0]))
+	return r, nil
+}
+
 func (c *Compiler) compileCall(fs *funcState, proc types.Object, args []types.Object) (*reg, error) {
 	procR, err := c.compileObject(fs, proc)
 	if err != nil {
@@ -388,6 +397,8 @@ func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
 			return c.compileBegin(fs, argsArr)
 		case "set!":
 			return c.compileSet(fs, argsArr)
+		case "quote":
+			return c.compileQuote(fs, argsArr)
 		default: // (procedure-name args...)
 			return c.compileCall(fs, first, argsArr)
 		}

@@ -86,6 +86,11 @@ func TestExecuteString(t *testing.T) {
 			"(define (test a) (+ a 1) (+ a 2)) (test 1)",
 			"3",
 		},
+		{
+			func() *State { return NewState() },
+			"(car (quote (1 2 3)))",
+			"1",
+		},
 	}
 	for i, tc := range testcases {
 		s := tc.stateFactory()
