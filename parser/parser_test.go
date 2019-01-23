@@ -38,11 +38,7 @@ func TestParsePair(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected pair")
 	}
-	car, err := types.Car(pair)
-	if err != nil {
-		t.Fatal(err)
-	}
-	sym, ok := car.(*types.Symbol)
+	sym, ok := pair.Car().(*types.Symbol)
 	if !ok {
 		t.Fatalf("expected symbol")
 	}

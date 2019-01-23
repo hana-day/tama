@@ -5,12 +5,12 @@ import (
 )
 
 type Pair struct {
-	Car Object
-	Cdr Object
+	car Object
+	cdr Object
 }
 
 func (p *Pair) String() string {
-	return fmt.Sprintf("(%s . %s)", p.Car.String(), p.Cdr.String())
+	return fmt.Sprintf("(%s . %s)", p.car.String(), p.cdr.String())
 }
 
 func (p *Pair) Type() ObjectType {
@@ -21,26 +21,86 @@ func (p *Pair) Slice() ([]Object, error) {
 	arr := []Object{}
 	pair := p
 	var ok bool
-	for pair.Cdr.Type() != TyNil {
-		arr = append(arr, pair.Car)
-		pair, ok = pair.Cdr.(*Pair)
+	for pair.cdr.Type() != TyNil {
+		arr = append(arr, pair.car)
+		pair, ok = pair.cdr.(*Pair)
 		if !ok {
 			return arr, fmt.Errorf("%v is not slicable object", p.String())
 		}
 	}
-	arr = append(arr, pair.Car)
+	arr = append(arr, pair.car)
 	return arr, nil
 }
 
 func (p *Pair) Len() int {
 	len := 1
-	cdr := p.Cdr
+	cdr := p.cdr
 	for cdr.Type() == TyPair {
 		len++
 		p := cdr.(*Pair)
-		cdr = p.Cdr
+		cdr = p.cdr
 	}
 	return len
+}
+
+func (p *Pair) Car() Object {
+	return p.car
+}
+
+func (p *Pair) Cdr() Object {
+	return p.cdr
+}
+
+func (p *Pair) Cdar() (Object, error) {
+	cdr, ok := p.cdr.(*Pair)
+	if !ok {
+		return nil, fmt.Errorf("pair required")
+	}
+	return cdr.car, nil
+}
+
+func (p *Pair) Cddr() (Object, error) {
+	cdr, ok := p.cdr.(*Pair)
+	if !ok {
+		return nil, fmt.Errorf("pair required")
+	}
+	return cdr.cdr, nil
+}
+
+func (p *Pair) Cddar() (Object, error) {
+	cddr, err := p.Cddr()
+	if err != nil {
+		return nil, err
+	}
+	pair, ok := cddr.(*Pair)
+	if !ok {
+		return nil, fmt.Errorf("pair required")
+	}
+	return pair.car, nil
+}
+
+func (p *Pair) Cdddr() (Object, error) {
+	cddr, err := p.Cddr()
+	if err != nil {
+		return nil, err
+	}
+	pair, ok := cddr.(*Pair)
+	if !ok {
+		return nil, fmt.Errorf("pair required")
+	}
+	return pair.cdr, nil
+}
+
+func (p *Pair) First() Object {
+	return p.Car()
+}
+
+func (p *Pair) Second() (Object, error) {
+	return p.Cdar()
+}
+
+func (p *Pair) Third() (Object, error) {
+	return p.Cddar()
 }
 
 func (s *Symbol) Type() ObjectType {
@@ -49,41 +109,9 @@ func (s *Symbol) Type() ObjectType {
 
 func Cons(car Object, cdr Object) *Pair {
 	return &Pair{
-		Car: car,
-		Cdr: cdr,
+		car: car,
+		cdr: cdr,
 	}
-}
-
-func Car(v Object) (Object, error) {
-	p, ok := v.(*Pair)
-	if !ok {
-		return nil, fmt.Errorf("car: %v is not a pair", v)
-	}
-	return p.Car, nil
-}
-
-func Cdr(v Object) (Object, error) {
-	p, ok := v.(*Pair)
-	if !ok {
-		return nil, fmt.Errorf("cdr: %v is not a pair", v)
-	}
-	return p.Cdr, nil
-}
-
-func Cdar(v Object) (Object, error) {
-	cdr, err := Cdr(v)
-	if err != nil {
-		return nil, err
-	}
-	return Car(cdr)
-}
-
-func Cddr(v Object) (Object, error) {
-	cdr, err := Cdr(v)
-	if err != nil {
-		return nil, err
-	}
-	return Cdr(cdr)
 }
 
 func List(args ...Object) Object {
@@ -91,7 +119,7 @@ func List(args ...Object) Object {
 		return NilObject
 	}
 	return &Pair{
-		Car: args[0],
-		Cdr: List(args[1:len(args)]...),
+		car: args[0],
+		cdr: List(args[1:len(args)]...),
 	}
 }

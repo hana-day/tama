@@ -43,7 +43,7 @@ func fnCar(s *State, args []types.Object) (types.Object, error) {
 	if !ok {
 		return nil, fmt.Errorf("car: invalid value")
 	}
-	return pair.Car, nil
+	return pair.Car(), nil
 }
 
 func fnCdr(s *State, args []types.Object) (types.Object, error) {
@@ -54,5 +54,5 @@ func fnCdr(s *State, args []types.Object) (types.Object, error) {
 	if !ok {
 		return nil, fmt.Errorf("cdr: invalid value")
 	}
-	return pair.Cdr, nil
+	return pair.Cdr(), nil
 }

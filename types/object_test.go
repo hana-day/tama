@@ -29,11 +29,16 @@ func TestList(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected pair")
 	}
-	cdr, _ := Cdr(l)
-	cdar, _ := Car(cdr)
-	cddr, _ := Cdr(cdr)
+	cdar, err := l.Cdar()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if cdar.String() != "2" {
 		t.Fatalf("expected %v, but got %v", "2", cdar.String())
+	}
+	cddr, err := l.Cddr()
+	if err != nil {
+		t.Fatal(err)
 	}
 	if cddr.Type() != TyNil {
 		t.Fatalf("expected nil")

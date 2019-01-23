@@ -200,13 +200,12 @@ func (c *Compiler) compileDefine(fs *funcState, pair *types.Pair) (*reg, error) 
 	if pair.Len() != 3 {
 		return nil, c.error("define: invalid syntax")
 	}
-	cdar, _ := types.Cdar(pair)
-	varname, ok := cdar.(*types.Symbol)
+	second, _ := pair.Second()
+	varname, ok := second.(*types.Symbol)
 	if !ok {
 		return nil, c.error("define: invalid syntax")
 	}
-	cddr, _ := types.Cddr(pair)
-	expr, _ := types.Car(cddr)
+	expr, _ := pair.Third()
 	r, err := c.compileGlobalAssign(fs, varname, expr)
 	if err != nil {
 		return nil, err
@@ -219,8 +218,8 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 	if pair.Len() < 3 {
 		return nil, c.error("invalid lambda %s", pair.String())
 	}
-	cdar, _ := types.Cdar(pair)
-	args, ok := cdar.(types.SlicableObject)
+	second, _ := pair.Second()
+	args, ok := second.(types.SlicableObject)
 	if !ok {
 		return nil, c.error("invalid lambda %s", pair.String())
 	}
@@ -241,7 +240,7 @@ func (c *Compiler) compileLambda(fs *funcState, pair *types.Pair) (*reg, error) 
 	for _, arg := range child.proto.Args {
 		child.bindLocVar(arg.Name)
 	}
-	cddr, _ := types.Cddr(pair)
+	cddr, _ := pair.Cddr()
 	body := types.Cons(&types.Symbol{Name: "begin"}, cddr)
 	resultR, err := c.compileObject(child, body)
 	if err != nil {
@@ -279,7 +278,7 @@ func (c *Compiler) compileBegin(fs *funcState, pair *types.Pair) (*reg, error) {
 	if pair.Len() < 2 {
 		return nil, c.error("invalid begin %s", pair.String())
 	}
-	cdr, _ := types.Cdr(pair)
+	cdr := pair.Cdr()
 	exprs, err := cdr.(*types.Pair).Slice()
 	if err != nil {
 		return nil, err
@@ -295,13 +294,12 @@ func (c *Compiler) compileSet(fs *funcState, pair *types.Pair) (*reg, error) {
 	if pair.Len() != 3 {
 		return nil, c.error("set!: invalid syntax")
 	}
-	cdar, _ := types.Cdar(pair)
-	varname, ok := cdar.(*types.Symbol)
+	second, _ := pair.Second()
+	varname, ok := second.(*types.Symbol)
 	if !ok {
 		return nil, c.error("set!: invalid syntax")
 	}
-	cddr, _ := types.Cddr(pair)
-	expr, _ := types.Car(cddr)
+	expr, _ := pair.Third()
 	switch fs.getVarType(varname) {
 	case varLocVar:
 		index := fs.findLocVar(varname.Name)
@@ -362,12 +360,12 @@ func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
 	if pair.Len() == 0 {
 		return nil, c.error("invalid syntax %s", pair.String())
 	}
-	cdr, _ := types.Cdr(pair)
+	cdr := pair.Cdr()
 	args, ok := cdr.(types.SlicableObject)
 	if !ok {
 		return nil, c.error("invalid syntax %s", pair.String())
 	}
-	v, _ := types.Car(pair)
+	v := pair.Car()
 	switch first := v.(type) {
 	case *types.Symbol:
 		switch first.Name {
