@@ -17,6 +17,8 @@ const (
 	OP_GETUPVAL
 	OP_SETUPVAL
 	OP_CLOSE
+	OP_TEST
+	OP_JMP
 )
 
 type opType int
@@ -43,7 +45,23 @@ var opProps = []opProp{
 	opProp{"GETUPVAL", opTypeABC},
 	opProp{"SETUPVAL", opTypeABC},
 	opProp{"CLOSE", opTypeABC},
+	opProp{"TEST", opTypeABC},
+	opProp{"JMP", opTypeASbx},
 }
+
+const (
+	SizeCode  = 6
+	SizeA     = 8
+	SizeB     = 9
+	SizeC     = 9
+	SizeBx    = 18
+	SizesBx   = 18
+	MaxArgsA  = (1 << SizeA) - 1
+	MaxArgsB  = (1 << SizeB) - 1
+	MaxArgsC  = (1 << SizeC) - 1
+	MaxArgBx  = (1 << SizeBx) - 1
+	MaxArgSbx = MaxArgBx >> 1
+)
 
 func GetOpType(inst uint32) opType {
 	return opProps[GetOpCode(inst)].Type
@@ -67,6 +85,10 @@ func GetArgB(inst uint32) int {
 
 func GetArgBx(inst uint32) int {
 	return int(inst & 0x3ffff)
+}
+
+func GetArgSbx(inst uint32) int {
+	return GetArgBx(inst) - MaxArgSbx
 }
 
 func GetArgC(inst uint32) int {
@@ -93,6 +115,10 @@ func SetArgBx(inst *uint32, arg int) {
 	*inst = (*inst & 0xfffc0000) | uint32(arg&0x3ffff)
 }
 
+func SetArgSbx(inst *uint32, arg int) {
+	SetArgBx(inst, arg+MaxArgSbx)
+}
+
 func CreateABC(op int, a int, b int, c int) uint32 {
 	var inst uint32 = 0
 	SetOpCode(&inst, op)
@@ -107,6 +133,14 @@ func CreateABx(op int, a int, bx int) uint32 {
 	SetOpCode(&inst, op)
 	SetArgA(&inst, a)
 	SetArgBx(&inst, bx)
+	return inst
+}
+
+func CreateASbx(op int, a int, sbx int) uint32 {
+	var inst uint32 = 0
+	SetOpCode(&inst, op)
+	SetArgA(&inst, a)
+	SetArgSbx(&inst, sbx)
 	return inst
 }
 
@@ -125,12 +159,21 @@ func dumpABx(inst uint32) string {
 	return fmt.Sprintf("%s %d %d", opname, a, bx)
 }
 
+func dumpASbx(inst uint32) string {
+	opname := GetOpName(inst)
+	a := GetArgA(inst)
+	sbx := GetArgSbx(inst)
+	return fmt.Sprintf("%s %d %d", opname, a, sbx)
+}
+
 func DumpInst(inst uint32) string {
 	switch GetOpType(inst) {
 	case opTypeABC:
 		return dumpABC(inst)
 	case opTypeABx:
 		return dumpABx(inst)
+	case opTypeASbx:
+		return dumpASbx(inst)
 	default:
 		panic("unsupported optype")
 	}

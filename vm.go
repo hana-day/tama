@@ -123,6 +123,26 @@ reentry:
 			if debug {
 				fmt.Printf("%-20s ; close %d\n", compiler.DumpInst(inst), ra)
 			}
+		case compiler.OP_TEST:
+			c := compiler.GetArgC(inst)
+			v := s.CallStack.Get(ra)
+			if (c == 0) == IsTruthy(v) {
+				ci.Pc++
+			}
+			if debug {
+				incPc := (c == 0) == IsTruthy(v)
+				if incPc {
+					fmt.Printf("%-20s ; pc += 1\n", compiler.DumpInst(inst))
+				} else {
+					fmt.Printf("%-20s ; pc += 0\n", compiler.DumpInst(inst))
+				}
+			}
+		case compiler.OP_JMP:
+			sbx := compiler.GetArgSbx(inst)
+			ci.Pc += sbx
+			if debug {
+				fmt.Printf("%-20s ; pc += %d\n", compiler.DumpInst(inst), sbx)
+			}
 		}
 	}
 	return nil

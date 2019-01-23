@@ -114,6 +114,14 @@ func (fs *funcState) addABC(op int, a int, b int, c int) {
 	fs.add(CreateABC(op, a, b, c))
 }
 
+func (fs *funcState) addASbx(op int, a int, sbx int) {
+	fs.add(CreateASbx(op, a, sbx))
+}
+
+func (fs *funcState) rewriteSbx(pc int, sbx int) {
+	SetArgSbx(&fs.proto.Insts[pc], sbx)
+}
+
 func (fs *funcState) constIndex(v types.Object) int {
 	for i, cs := range fs.proto.Consts {
 		if cs == v {
@@ -154,6 +162,10 @@ func (fs *funcState) getVarType(sym *types.Symbol) varType {
 	return varGlobal
 }
 
+func (fs *funcState) nextPc() int {
+	return len(fs.proto.Insts)
+}
+
 func (c *Compiler) error(format string, a ...interface{}) error {
 	return fmt.Errorf("compiler: %s", fmt.Sprintf(format, a...))
 }
@@ -189,13 +201,11 @@ func (c *Compiler) compileSymbol(fs *funcState, sym *types.Symbol) *reg {
 }
 
 func (c *Compiler) compileGlobalAssign(fs *funcState, varname *types.Symbol, value types.Object) (*reg, error) {
-	nameR := fs.newReg()
-	fs.addABx(OP_LOADK, nameR.n, fs.constIndex(varname.Name))
 	valueR, err := c.compileObject(fs, value)
 	if err != nil {
 		return nil, err
 	}
-	fs.addABx(OP_SETGLOBAL, valueR.n, nameR.n)
+	fs.addABx(OP_SETGLOBAL, valueR.n, fs.constIndex(varname.Name))
 	return valueR, nil
 }
 
@@ -351,6 +361,39 @@ func (c *Compiler) compileQuote(fs *funcState, argsArr []types.Object) (*reg, er
 	return r, nil
 }
 
+func (c *Compiler) compileIf(fs *funcState, argsArr []types.Object) (*reg, error) {
+	if len(argsArr) != 3 {
+		return nil, fmt.Errorf("if: invalid syntax")
+	}
+	testR, err := c.compileObject(fs, argsArr[0])
+	if err != nil {
+		return nil, err
+	}
+	resultR := fs.newReg()
+
+	fs.addABC(OP_TEST, testR.n, 0, 1)
+	thenJmpPc := fs.nextPc()
+	fs.addASbx(OP_JMP, 0, 0) // jump to then expr. sbx will be set later
+	elseJmpPc := fs.nextPc()
+	fs.addASbx(OP_JMP, 0, 0) // jump to else expr. sbx will be set later
+
+	thenPc := fs.nextPc()
+	thenR, err := c.compileObject(fs, argsArr[1])
+	fs.addABC(OP_MOVE, resultR.n, thenR.n, 0)
+	lastJmpPc := fs.nextPc()
+	fs.addASbx(OP_JMP, 0, 0) // jump to last expr. sbx will be set later.
+
+	elsePc := fs.nextPc()
+	elseR, err := c.compileObject(fs, argsArr[2])
+	fs.addABC(OP_MOVE, resultR.n, elseR.n, 0)
+
+	lastPc := fs.nextPc()
+	fs.rewriteSbx(thenJmpPc, thenPc-thenJmpPc-1)
+	fs.rewriteSbx(elseJmpPc, elsePc-elseJmpPc-1)
+	fs.rewriteSbx(lastJmpPc, lastPc-lastJmpPc-1)
+	return resultR, nil
+}
+
 func (c *Compiler) compileCall(fs *funcState, proc types.Object, args []types.Object) (*reg, error) {
 	procR, err := c.compileObject(fs, proc)
 	if err != nil {
@@ -405,6 +448,8 @@ func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
 			return c.compileSet(fs, argsArr)
 		case "quote":
 			return c.compileQuote(fs, argsArr)
+		case "if":
+			return c.compileIf(fs, argsArr)
 		default: // (procedure-name args...)
 			return c.compileCall(fs, first, argsArr)
 		}
