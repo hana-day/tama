@@ -297,14 +297,23 @@ func (c *Compiler) compileSet(fs *funcState, pair *types.Pair) (*reg, error) {
 	}
 	cdar, _ := types.Cdar(pair)
 	varname, ok := cdar.(*types.Symbol)
-	cddr, _ := types.Cddr(pair)
-	expr, _ := types.Car(cddr)
 	if !ok {
 		return nil, c.error("set!: invalid syntax")
 	}
+	cddr, _ := types.Cddr(pair)
+	expr, _ := types.Car(cddr)
 	switch fs.getVarType(varname) {
 	case varLocVar:
-		return nil, nil
+		index := fs.findLocVar(varname.Name)
+		if index < 0 {
+			index = fs.bindLocVar(varname.Name)
+		}
+		valueR, err := c.compileObject(fs, expr)
+		if err != nil {
+			return nil, err
+		}
+		fs.addABC(OP_MOVE, index, valueR.n, 0)
+		return valueR, nil
 	case varGlobal:
 		return c.compileGlobalAssign(fs, varname, expr)
 	case varUpValue:
