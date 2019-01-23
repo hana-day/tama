@@ -317,7 +317,12 @@ func (c *Compiler) compileSet(fs *funcState, pair *types.Pair) (*reg, error) {
 	case varGlobal:
 		return c.compileGlobalAssign(fs, varname, expr)
 	case varUpValue:
-		return nil, nil
+		valueR, err := c.compileObject(fs, expr)
+		if err != nil {
+			return nil, err
+		}
+		fs.addABC(OP_SETUPVAL, valueR.n, fs.upValueIndex(varname.Name), 0)
+		return valueR, nil
 	}
 	return nil, c.error("set!: unsupported var type")
 }

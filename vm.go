@@ -110,6 +110,14 @@ reentry:
 			if debug {
 				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, v)
 			}
+		case compiler.OP_SETUPVAL:
+			b := compiler.GetArgB(inst)
+			uv := ci.Cl.UpVals[b]
+			v := s.CallStack.Get(ra)
+			uv.Set(s.CallStack, v)
+			if debug {
+				fmt.Printf("%-20s ; Up[%d] = %v\n", compiler.DumpInst(inst), b, v)
+			}
 		case compiler.OP_CLOSE:
 			s.closeUpValues(ra)
 			if debug {

@@ -16,6 +16,14 @@ func (uv *UpValue) Value(callStack *Stack) Object {
 	return callStack.Get(uv.Index).(Object)
 }
 
+func (uv *UpValue) Set(callStack *Stack, value Object) {
+	if uv.Closed {
+		uv.obj = value
+	} else {
+		callStack.Set(uv.Index, value)
+	}
+}
+
 func (uv *UpValue) Close(callStack *Stack) {
 	value := uv.Value(callStack).(Object)
 	uv.obj = value

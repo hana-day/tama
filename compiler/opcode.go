@@ -15,6 +15,7 @@ const (
 	OP_CLOSURE
 	OP_CALL
 	OP_GETUPVAL
+	OP_SETUPVAL
 	OP_CLOSE
 )
 
@@ -40,6 +41,7 @@ var opProps = []opProp{
 	opProp{"CLOSURE", opTypeABx},
 	opProp{"CALL", opTypeABC},
 	opProp{"GETUPVAL", opTypeABC},
+	opProp{"SETUPVAL", opTypeABC},
 	opProp{"CLOSE", opTypeABC},
 }
 
