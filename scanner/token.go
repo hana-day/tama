@@ -10,4 +10,6 @@ const (
 	RPAREN // ")"
 	IDENT
 	QUOTE // "'"
+	TRUE  // "#t"
+	FALSE // "#f"
 )

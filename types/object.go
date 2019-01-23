@@ -13,6 +13,7 @@ const (
 	TyNil
 	TySymbol
 	TyPair
+	TyBoolean
 
 	TyCallInfo // for internal use
 )
@@ -38,6 +39,7 @@ type (
 	Symbol struct {
 		Name String
 	}
+	Boolean bool
 )
 
 func (num Number) String() string {
@@ -71,3 +73,14 @@ func (n *Nil) Slice() ([]Object, error) {
 }
 
 var NilObject = &Nil{}
+
+func (b Boolean) Type() ObjectType {
+	return TyBoolean
+}
+
+func (b Boolean) String() string {
+	if b {
+		return "#t"
+	}
+	return "#f"
+}

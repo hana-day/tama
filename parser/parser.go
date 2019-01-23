@@ -77,7 +77,8 @@ func (p *Parser) parsePair() (types.Object, error) {
 }
 
 func (p *Parser) parseObject() (types.Object, error) {
-	switch p.tok {
+	tok := p.tok
+	switch tok {
 	case scanner.INT:
 		return p.parseInt()
 	case scanner.LPAREN:
@@ -96,6 +97,14 @@ func (p *Parser) parseObject() (types.Object, error) {
 			return nil, err
 		}
 		return types.List(&types.Symbol{"quote"}, obj), nil
+	case scanner.TRUE, scanner.FALSE:
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		if tok == scanner.TRUE {
+			return types.Boolean(true), nil
+		}
+		return types.Boolean(false), nil
 	default:
 		return nil, p.error("unexpected token %d", p.tok)
 
