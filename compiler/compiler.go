@@ -195,16 +195,37 @@ func (c *Compiler) compileGlobalAssign(fs *funcState, varname *types.Symbol, val
 
 // Compile define syntax
 //
-// (define a 1)
+// (define variable expression)
+// (define (variable formals) body)
 func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, error) {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return nil, c.error("define: invalid syntax")
 	}
-	varname, ok := args[0].(*types.Symbol)
-	if !ok {
+
+	var varname *types.Symbol
+	var expr types.Object
+
+	switch first := args[0].(type) {
+	case *types.Symbol: // (define variable expression)
+		varname = first
+		expr = args[1]
+	case *types.Pair: // (define (variable formals) body)
+		sym, ok := first.Car().(*types.Symbol)
+		if !ok {
+			return nil, c.error("define: invalid syntax")
+		}
+		varname = sym
+		// convert
+		// (define (variable formals) body)
+		// =>
+		// (define variable
+		//   (lambda (formals) body))
+		lambdaExpr := []types.Object{&types.Symbol{"lambda"}, first.Cdr()}
+		lambdaExpr = append(lambdaExpr, args[1:]...)
+		expr = types.List(lambdaExpr...)
+	default:
 		return nil, c.error("define: invalid syntax")
 	}
-	expr := args[1]
 	r, err := c.compileGlobalAssign(fs, varname, expr)
 	if err != nil {
 		return nil, err
