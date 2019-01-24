@@ -19,6 +19,9 @@ const (
 	OP_CLOSE
 	OP_TEST
 	OP_JMP
+	// LOADUNDEF A B    R(A) := ... := R(B) := undefined
+	// Sets a range of registers from R(A) to R(B) to undefined.
+	OP_LOADUNDEF
 )
 
 type opType int
@@ -47,6 +50,7 @@ var opProps = []opProp{
 	opProp{"CLOSE", opTypeABC},
 	opProp{"TEST", opTypeABC},
 	opProp{"JMP", opTypeASbx},
+	opProp{"LOADUNDEF", opTypeABC},
 }
 
 const (

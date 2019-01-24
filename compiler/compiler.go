@@ -338,18 +338,22 @@ func (c *Compiler) compileSet(fs *funcState, args []types.Object) (*reg, error) 
 			return nil, err
 		}
 		fs.addABC(OP_MOVE, index, valueR.n, 0)
-		return valueR, nil
 	case varGlobal:
-		return c.compileGlobalAssign(fs, varname, expr)
+		if _, err := c.compileGlobalAssign(fs, varname, expr); err != nil {
+			return nil, err
+		}
 	case varUpValue:
 		valueR, err := c.compileObject(fs, expr)
 		if err != nil {
 			return nil, err
 		}
 		fs.addABC(OP_SETUPVAL, valueR.n, fs.upValueIndex(varname.Name), 0)
-		return valueR, nil
+	default:
+		return nil, c.error("set!: unsupported var type")
 	}
-	return nil, c.error("set!: unsupported var type")
+	r := fs.newReg()
+	fs.addABC(OP_LOADUNDEF, r.n, r.n, 0)
+	return r, nil
 }
 
 func (c *Compiler) compileQuote(fs *funcState, argsArr []types.Object) (*reg, error) {
@@ -393,9 +397,7 @@ func (c *Compiler) compileIf(fs *funcState, argsArr []types.Object) (*reg, error
 		}
 		fs.addABC(OP_MOVE, resultR.n, elseR.n, 0)
 	} else { // (if test consequent)
-		r := fs.newReg()
-		fs.addABx(OP_LOADK, r.n, fs.constIndex(types.UndefinedObject))
-		fs.addABC(OP_MOVE, resultR.n, r.n, 0)
+		fs.addABC(OP_LOADUNDEF, resultR.n, resultR.n, 0)
 	}
 	lastPc := fs.nextPc()
 	fs.rewriteSbx(thenJmpPc, thenPc-thenJmpPc-1)

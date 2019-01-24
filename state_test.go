@@ -83,6 +83,11 @@ func TestExecuteString(t *testing.T) {
 		},
 		{
 			func() *State { return NewState() },
+			"(define a 1) (set! a 2)",
+			types.UndefinedObject.String(),
+		},
+		{
+			func() *State { return NewState() },
 			"(define (test a) (+ a 1) (+ a 2)) (test 1)",
 			"3",
 		},
@@ -135,6 +140,11 @@ func TestExecuteString(t *testing.T) {
 			func() *State { return NewState() },
 			"(define a 1) (if 1 (set! a 2)) a",
 			"2",
+		},
+		{
+			func() *State { return NewState() },
+			"(if #f 1)",
+			types.UndefinedObject.String(),
 		},
 	}
 	for i, tc := range testcases {

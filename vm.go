@@ -144,6 +144,14 @@ reentry:
 			if debug {
 				fmt.Printf("%-20s ; pc += %d\n", compiler.DumpInst(inst), sbx)
 			}
+		case compiler.OP_LOADUNDEF:
+			rb := base + compiler.GetArgB(inst)
+			for r := ra; r <= rb; r++ {
+				s.CallStack.Set(r, types.UndefinedObject)
+			}
+			if debug {
+				fmt.Printf("%-20s ; R[%d] ... R[%d] = undefined\n", compiler.DumpInst(inst), ra, rb)
+			}
 		}
 	}
 	return nil
