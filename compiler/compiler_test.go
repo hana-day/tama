@@ -27,7 +27,7 @@ func TestCompileNumber(t *testing.T) {
 func TestCompileSymbol(t *testing.T) {
 	fs := newFuncState(nil)
 	c := &Compiler{}
-	c.compileSymbol(fs, &types.Symbol{Name: "test"})
+	c.compileSymbol(fs, types.NewSymbol("test"))
 	if len(fs.proto.Insts) != 1 {
 		t.Fatalf("expected %d, but got %d", 2, len(fs.proto.Insts))
 	}

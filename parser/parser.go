@@ -57,7 +57,7 @@ func (p *Parser) parseInt() (types.Object, error) {
 }
 
 func (p *Parser) parseIdent() (types.Object, error) {
-	sym := &types.Symbol{Name: types.String(p.lit)}
+	sym := types.NewSymbol(types.String(p.lit))
 	return sym, p.next()
 }
 
@@ -96,7 +96,7 @@ func (p *Parser) parseObject() (types.Object, error) {
 		if err != nil {
 			return nil, err
 		}
-		return types.List(&types.Symbol{"quote"}, obj), nil
+		return types.List(types.NewSymbol("quote"), obj), nil
 	case scanner.TRUE, scanner.FALSE:
 		if err := p.next(); err != nil {
 			return nil, err

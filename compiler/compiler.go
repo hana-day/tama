@@ -236,7 +236,7 @@ func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, erro
 		// =>
 		// (define variable
 		//   (lambda (formals) body))
-		lambdaExpr := []types.Object{&types.Symbol{"lambda"}, first.Cdr()}
+		lambdaExpr := []types.Object{types.NewSymbol("lambda"), first.Cdr()}
 		lambdaExpr = append(lambdaExpr, args[1:]...)
 		expr = types.List(lambdaExpr...)
 	default:

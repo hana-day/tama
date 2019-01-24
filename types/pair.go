@@ -106,20 +106,3 @@ func (p *Pair) Third() (Object, error) {
 func (s *Symbol) Type() ObjectType {
 	return TySymbol
 }
-
-func Cons(car Object, cdr Object) *Pair {
-	return &Pair{
-		car: car,
-		cdr: cdr,
-	}
-}
-
-func List(args ...Object) Object {
-	if len(args) == 0 {
-		return NilObject
-	}
-	return &Pair{
-		car: args[0],
-		cdr: List(args[1:len(args)]...),
-	}
-}

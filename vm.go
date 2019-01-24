@@ -126,11 +126,11 @@ reentry:
 		case compiler.OP_TEST:
 			c := compiler.GetArgC(inst)
 			v := s.CallStack.Get(ra)
-			if (c == 0) == IsTruthy(v) {
+			if (c == 0) == types.IsTruthy(v) {
 				ci.Pc++
 			}
 			if debug {
-				incPc := (c == 0) == IsTruthy(v)
+				incPc := (c == 0) == types.IsTruthy(v)
 				if incPc {
 					fmt.Printf("%-20s ; pc += 1\n", compiler.DumpInst(inst))
 				} else {

@@ -56,6 +56,10 @@ func (s String) Type() ObjectType {
 	return TyString
 }
 
+func NewSymbol(name String) *Symbol {
+	return &Symbol{Name: name}
+}
+
 func (s *Symbol) String() string {
 	return s.Name.String()
 }
