@@ -28,14 +28,15 @@ reentry:
 			}
 		case compiler.OP_GETGLOBAL:
 			bx := compiler.GetArgBx(inst)
-			s.CallStack.Set(ra, s.Global[cl.Proto.Consts[bx].String()])
+			v, _ := s.GetGlobal(cl.Proto.Consts[bx].String())
+			s.CallStack.Set(ra, v)
 			if debug {
-				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, s.Global[cl.Proto.Consts[bx].String()])
+				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, v)
 			}
 		case compiler.OP_SETGLOBAL:
 			bx := compiler.GetArgBx(inst)
 			obj := s.CallStack.Get(ra)
-			s.Global[cl.Proto.Consts[bx].String()] = obj
+			s.SetGlobal(cl.Proto.Consts[bx].String(), obj)
 			if debug {
 				fmt.Printf("%-20s ; Gbl[%v] = %v\n", compiler.DumpInst(inst), cl.Proto.Consts[bx].String(), obj)
 			}

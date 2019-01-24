@@ -14,6 +14,7 @@ const (
 	TySymbol
 	TyPair
 	TyBoolean
+	TySyntax
 
 	TyCallInfo // for internal use
 )
@@ -56,8 +57,8 @@ func (s String) Type() ObjectType {
 	return TyString
 }
 
-func NewSymbol(name String) *Symbol {
-	return &Symbol{Name: name}
+func NewSymbol(name string) *Symbol {
+	return &Symbol{Name: String(name)}
 }
 
 func (s *Symbol) String() string {

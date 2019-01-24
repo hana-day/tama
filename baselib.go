@@ -2,10 +2,17 @@ package tama
 
 import (
 	"fmt"
+	"github.com/hyusuk/tama/compiler"
 	"github.com/hyusuk/tama/types"
 )
 
 func (s *State) OpenBase() *State {
+	// set syntaxes
+	for name, syntax := range compiler.DefaultSyntaxes {
+		s.SetGlobal(name, syntax)
+	}
+
+	// set procedures
 	s.RegisterFunc("+", fnAdd)
 	s.RegisterFunc("cons", fnCons)
 	s.RegisterFunc("car", fnCar)

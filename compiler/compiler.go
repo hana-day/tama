@@ -499,3 +499,13 @@ func Compile(objs []types.Object) (*types.Closure, error) {
 	cl := types.NewScmClosure(fs.proto, 0)
 	return cl, nil
 }
+
+var DefaultSyntaxes map[string]*types.Syntax = map[string]*types.Syntax{
+	// pseudo syntaxes
+	"define": types.NewSyntax("define", nil),
+	"lambda": types.NewSyntax("lambda", nil),
+	"begin":  types.NewSyntax("begin", nil),
+	"set!":   types.NewSyntax("set!", nil),
+	"quote":  types.NewSyntax("quote", nil),
+	"if":     types.NewSyntax("if", nil),
+}

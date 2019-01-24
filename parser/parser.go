@@ -57,7 +57,7 @@ func (p *Parser) parseInt() (types.Object, error) {
 }
 
 func (p *Parser) parseIdent() (types.Object, error) {
-	sym := types.NewSymbol(types.String(p.lit))
+	sym := types.NewSymbol(p.lit)
 	return sym, p.next()
 }
 

@@ -156,7 +156,16 @@ func (s *State) closeUpValues(idx int) {
 	}
 }
 
+func (s *State) SetGlobal(name string, obj types.Object) {
+	s.Global[name] = obj
+}
+
+func (s *State) GetGlobal(name string) (obj types.Object, ok bool) {
+	obj, ok = s.Global[name]
+	return
+}
+
 func (s *State) RegisterFunc(name string, fn GoFunc) {
 	cl := types.NewGoClosure(name, fn)
-	s.Global[name] = cl
+	s.SetGlobal(name, cl)
 }
