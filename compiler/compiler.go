@@ -362,9 +362,11 @@ func (c *Compiler) compileQuote(fs *funcState, argsArr []types.Object) (*reg, er
 }
 
 func (c *Compiler) compileIf(fs *funcState, argsArr []types.Object) (*reg, error) {
-	if len(argsArr) != 3 {
+	if len(argsArr) != 2 && len(argsArr) != 3 {
 		return nil, fmt.Errorf("if: invalid syntax")
 	}
+	elseExists := len(argsArr) == 3
+
 	testR, err := c.compileObject(fs, argsArr[0])
 	if err != nil {
 		return nil, err
@@ -384,13 +386,22 @@ func (c *Compiler) compileIf(fs *funcState, argsArr []types.Object) (*reg, error
 	fs.addASbx(OP_JMP, 0, 0) // jump to last expr. sbx will be set later.
 
 	elsePc := fs.nextPc()
-	elseR, err := c.compileObject(fs, argsArr[2])
-	fs.addABC(OP_MOVE, resultR.n, elseR.n, 0)
-
+	if elseExists { // (if test consequent alternate)
+		elseR, err := c.compileObject(fs, argsArr[2])
+		if err != nil {
+			return nil, err
+		}
+		fs.addABC(OP_MOVE, resultR.n, elseR.n, 0)
+	} else { // (if test consequent)
+		r := fs.newReg()
+		fs.addABx(OP_LOADK, r.n, fs.constIndex(types.UndefinedObject))
+		fs.addABC(OP_MOVE, resultR.n, r.n, 0)
+	}
 	lastPc := fs.nextPc()
 	fs.rewriteSbx(thenJmpPc, thenPc-thenJmpPc-1)
 	fs.rewriteSbx(elseJmpPc, elsePc-elseJmpPc-1)
 	fs.rewriteSbx(lastJmpPc, lastPc-lastJmpPc-1)
+
 	return resultR, nil
 }
 

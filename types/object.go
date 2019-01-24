@@ -15,6 +15,7 @@ const (
 	TyPair
 	TyBoolean
 	TySyntax
+	TyUndefined
 
 	TyCallInfo // for internal use
 )
@@ -40,7 +41,8 @@ type (
 	Symbol struct {
 		Name String
 	}
-	Boolean bool
+	Boolean   bool
+	Undefined struct{}
 )
 
 func (num Number) String() string {
@@ -89,3 +91,13 @@ func (b Boolean) String() string {
 	}
 	return "#f"
 }
+
+func (un *Undefined) Type() ObjectType {
+	return TyUndefined
+}
+
+func (un *Undefined) String() string {
+	return "undefined"
+}
+
+var UndefinedObject = &Undefined{}
