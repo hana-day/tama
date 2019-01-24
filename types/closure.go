@@ -43,12 +43,24 @@ type Closure struct {
 	UpVals []*UpValue
 }
 
+type ArgMode int
+
+const (
+	// (lambda (x y) ...)
+	FixedArgMode ArgMode = iota
+	// (lambda args ...)
+	VArgMode
+	// (lambda (x y . rest) ...)
+	RestArgMode
+)
+
 type ClosureProto struct {
 	Insts   []uint32
 	Consts  []Object
 	Args    []*Symbol
 	Protos  []*ClosureProto // function prototypes inside the function
 	NUpVals int
+	Mode    ArgMode
 }
 
 func NewClosureProto() *ClosureProto {

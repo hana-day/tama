@@ -39,6 +39,29 @@ func (s *State) LoadString(source string) (*types.Closure, error) {
 	return compiler.Compile(f.Objs)
 }
 
+// popArgs pops arguements and create a slice [argument 1, ..., argument nargs].
+//
+//         [before]                      [after]
+//
+//      |            |               |            |
+//      +------------+               +------------+
+//      | closure    |               | closure    |
+//      | argument 1 |          SP ->+------------+
+//      |     ...    |               | argument 1 |
+//      | argument N |               |     ...    |
+// SP ->+------------+               | argument N |
+//      |            |               |            |
+//
+func (s *State) popArgs(nargs int) []types.Object {
+	topSp := s.CallStack.Sp()
+	args := make([]types.Object, nargs)
+	for i := 0; i < nargs; i++ {
+		args[i] = s.CallStack.Get(topSp - nargs + i + 1)
+	}
+	s.CallStack.SetSp(topSp - nargs)
+	return args
+}
+
 // precall prepares the function call.
 // If the function is a scheme-function, push call information onto the stack.
 // If the function is a go-function, push call information onto the stack and call it.
@@ -59,6 +82,7 @@ func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 	if !ok {
 		return nil, fmt.Errorf("function is not loaded")
 	}
+	nargs := s.CallStack.Sp() - clIndex
 	if cl.IsGo {
 		ci := &types.CallInfo{Cl: cl, Base: clIndex + 1, FuncSp: clIndex}
 		s.CallInfos.Push(ci)
@@ -67,21 +91,24 @@ func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 		if !ok {
 			return nil, fmt.Errorf("invalid function %v", cl.Fn)
 		}
-		nargs := s.CallStack.Sp() - clIndex
-		args := make([]types.Object, nargs)
-		topSp := s.CallStack.Sp()
-		for i := 0; i < nargs; i++ {
-			args[i] = s.CallStack.Get(topSp - nargs + i + 1)
-		}
+		args := s.popArgs(nargs)
 		retval, err := fn(s, args)
 		if err != nil {
 			return nil, err
 		}
-		s.CallStack.SetSp(clIndex)
 		s.CallStack.Push(retval)
 		s.postcall(s.CallStack.Sp())
 		return ci, nil
 	} else {
+		switch cl.Proto.Mode {
+		case types.FixedArgMode:
+			if nargs != len(cl.Proto.Args) {
+				return nil, fmt.Errorf("invalid number of arguments")
+			}
+		case types.VArgMode:
+			args := s.popArgs(nargs)
+			s.CallStack.Push(types.List(args...))
+		}
 		ci := &types.CallInfo{Cl: cl, Base: clIndex + 1, FuncSp: clIndex}
 		s.CallInfos.Push(ci)
 		return ci, nil

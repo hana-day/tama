@@ -249,29 +249,47 @@ func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, erro
 	return r, nil
 }
 
+/// compileLambda compiles lambda syntax.
+//
 // (lambda (x y) ...)
+// (lambda args ...)
+// (lambda (x y . rest) ...)
 func (c *Compiler) compileLambda(fs *funcState, lambdaArgs []types.Object) (*reg, error) {
 	if len(lambdaArgs) < 2 {
 		return nil, c.error("lambda: invalid syntax")
 	}
-	args, ok := lambdaArgs[0].(types.SlicableObject)
-	if !ok {
+	var argSyms []*types.Symbol
+
+	var mode types.ArgMode
+	switch args := lambdaArgs[0].(type) {
+	case *types.Nil:
+		mode = types.FixedArgMode
+		argSyms = []*types.Symbol{}
+	case *types.Symbol:
+		mode = types.VArgMode
+		argSyms = []*types.Symbol{args}
+	case *types.Pair:
+		mode = types.FixedArgMode
+		argsArr, err := args.Slice()
+		if err != nil {
+			return nil, err
+		}
+		argSyms = make([]*types.Symbol, len(argsArr))
+		for i, arg := range argsArr {
+			sym, ok := arg.(*types.Symbol)
+			if !ok {
+				return nil, c.error("lambda: invalid syntax")
+			}
+			argSyms[i] = sym
+		}
+	default:
 		return nil, c.error("lambda: invalid syntax")
+
 	}
 	child := newFuncState(fs)
-	argsArr, err := args.Slice()
-	if err != nil {
-		return nil, err
-	}
-	argSyms := make([]*types.Symbol, len(argsArr))
-	for i, arg := range argsArr {
-		sym, ok := arg.(*types.Symbol)
-		if !ok {
-			return nil, c.error("lambda: invalid syntax")
-		}
-		argSyms[i] = sym
-	}
 	child.proto.Args = argSyms
+	child.proto.Mode = mode
+
 	for _, arg := range child.proto.Args {
 		child.bindLocVar(arg.Name)
 	}

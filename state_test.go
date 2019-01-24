@@ -146,6 +146,11 @@ func TestExecuteString(t *testing.T) {
 			"(if #f 1)",
 			types.UndefinedObject.String(),
 		},
+		{
+			func() *State { return NewState() },
+			"((lambda args (+ (car args) 100)) 1 2 3)",
+			"101",
+		},
 	}
 	for i, tc := range testcases {
 		s := tc.stateFactory()
