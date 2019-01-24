@@ -161,6 +161,21 @@ func TestExecuteString(t *testing.T) {
 			"(define (a . rest) (car rest)) (a 1 2 3)",
 			"1",
 		},
+		{
+			func() *State { return NewState() },
+			"(= 1 1 1 1)",
+			"#t",
+		},
+		{
+			func() *State { return NewState() },
+			"(= 1 1 2 1)",
+			"#f",
+		},
+		{
+			func() *State { return NewState() },
+			"(define (factorial n) (if (= n 1) 1 (* n (factorial (- n 1))))) (factorial 3)",
+			"6",
+		},
 	}
 	for i, tc := range testcases {
 		s := tc.stateFactory()

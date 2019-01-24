@@ -13,26 +13,15 @@ func (s *State) OpenBase() *State {
 	}
 
 	// set procedures
-	s.RegisterFunc("+", fnAdd)
+	s.RegisterFunc("+", genFnArith("+"))
+	s.RegisterFunc("-", genFnArith("-"))
+	s.RegisterFunc("*", genFnArith("*"))
+	s.RegisterFunc("/", genFnArith("/"))
 	s.RegisterFunc("cons", fnCons)
 	s.RegisterFunc("car", fnCar)
 	s.RegisterFunc("cdr", fnCdr)
+	s.RegisterFunc("=", fnNumEq)
 	return s
-}
-
-func fnAdd(s *State, args []types.Object) (types.Object, error) {
-	if len(args) == 0 {
-		return nil, fmt.Errorf("+: invalid syntax")
-	}
-	var result types.Number = 0
-	for i := 0; i < len(args); i++ {
-		num, ok := args[i].(types.Number)
-		if !ok {
-			return nil, fmt.Errorf("+: invalid value %v", args[i])
-		}
-		result += num
-	}
-	return result, nil
 }
 
 func fnCons(s *State, args []types.Object) (types.Object, error) {
@@ -62,4 +51,59 @@ func fnCdr(s *State, args []types.Object) (types.Object, error) {
 		return nil, fmt.Errorf("cdr: invalid value")
 	}
 	return pair.Cdr(), nil
+}
+
+func fnNumEq(s *State, args []types.Object) (types.Object, error) {
+	if len(args) < 2 {
+		return nil, fmt.Errorf("=: insufficient number of arguments")
+	}
+	num, ok := args[0].(types.Number)
+	if !ok {
+		return nil, fmt.Errorf("=: non-numerical argument")
+	}
+	for _, arg := range args[1:] {
+		num2, ok := arg.(types.Number)
+		if !ok {
+			return nil, fmt.Errorf("=: non-numerical argument")
+		}
+		if num != num2 {
+			return types.Boolean(false), nil
+		}
+	}
+	return types.Boolean(true), nil
+}
+
+func genFnArith(name string) GoFunc {
+	return func(s *State, args []types.Object) (types.Object, error) {
+		if len(args) == 0 {
+			return nil, fmt.Errorf("%s: insufficient number of arguments", name)
+		}
+		result, ok := args[0].(types.Number)
+		if !ok {
+			return nil, fmt.Errorf("%s: non-numerical argument", name)
+		}
+		for _, arg := range args[1:] {
+			num, ok := arg.(types.Number)
+			if !ok {
+				return nil, fmt.Errorf("%s: non-numerical argument", name)
+			}
+			switch name {
+			case "+":
+				result += num
+			case "-":
+				result -= num
+			case "*":
+				if num == 0 {
+					return types.Number(0), nil
+				}
+				result *= num
+			case "/":
+				if num == 0 {
+					return nil, fmt.Errorf("/: division by zero")
+				}
+				result /= num
+			}
+		}
+		return result, nil
+	}
 }
