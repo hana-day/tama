@@ -213,6 +213,7 @@ func (c *Compiler) compileGlobalAssign(fs *funcState, varname *types.Symbol, val
 //
 // (define variable expression)
 // (define (variable formals) body)
+// (define (variable . formal) body)
 func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, error) {
 	if len(args) < 2 {
 		return nil, c.error("define: invalid syntax")
@@ -231,12 +232,32 @@ func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, erro
 			return nil, c.error("define: invalid syntax")
 		}
 		varname = sym
+		lambdaExpr := []types.Object{types.NewSymbol("lambda")}
+		if first.Len() == 3 {
+			second, _ := first.Second()
+			sym, ok := second.(*types.Symbol)
+			if !ok {
+				return nil, c.error("define: invalid syntax")
+			}
+			// convert
+			// (define (variable . formal) body)
+			// =>
+			// (define variable
+			//   (lambda formal body))
+			if sym.Name == "." {
+				cddar, _ := first.Cddar()
+				lambdaExpr = append(lambdaExpr, cddar)
+				lambdaExpr = append(lambdaExpr, args[1:]...)
+				expr = types.List(lambdaExpr...)
+				break
+			}
+		}
 		// convert
 		// (define (variable formals) body)
 		// =>
 		// (define variable
 		//   (lambda (formals) body))
-		lambdaExpr := []types.Object{types.NewSymbol("lambda"), first.Cdr()}
+		lambdaExpr = append(lambdaExpr, first.Cdr())
 		lambdaExpr = append(lambdaExpr, args[1:]...)
 		expr = types.List(lambdaExpr...)
 	default:
