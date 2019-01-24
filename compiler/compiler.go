@@ -249,6 +249,54 @@ func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, erro
 	return r, nil
 }
 
+func (c *Compiler) lambdaForm(formals types.Object) ([]*types.Symbol, types.ArgMode, error) {
+	var argSyms []*types.Symbol
+
+	var mode types.ArgMode
+	switch args := formals.(type) {
+	case *types.Nil:
+		mode = types.FixedArgMode
+		argSyms = []*types.Symbol{}
+	case *types.Symbol:
+		mode = types.VArgMode
+		argSyms = []*types.Symbol{args}
+	case *types.Pair:
+		argsArr, err := args.Slice()
+		if err != nil {
+			return nil, 0, err
+		}
+		numDots := 0
+		argSyms = make([]*types.Symbol, len(argsArr))
+		for i, arg := range argsArr {
+			sym, ok := arg.(*types.Symbol)
+			if !ok {
+				return nil, 0, c.error("lambda: invalid syntax")
+			}
+			argSyms[i] = sym
+		}
+		for _, sym := range argSyms {
+			if sym.Name == "." {
+				numDots++
+			}
+		}
+		switch numDots {
+		case 0:
+			mode = types.FixedArgMode
+		case 1:
+			mode = types.RestArgMode
+			if len(argsArr) < 3 || argSyms[len(argSyms)-2].Name != "." {
+				return nil, 0, c.error("lambda: invalid syntax")
+			}
+			argSyms = append(argSyms[:len(argSyms)-2], argSyms[len(argSyms)-1:]...)
+		case 2:
+			return nil, 0, c.error("lambda: invalid syntax")
+		}
+	default:
+		return nil, 0, c.error("lambda: invalid syntax")
+	}
+	return argSyms, mode, nil
+}
+
 /// compileLambda compiles lambda syntax.
 //
 // (lambda (x y) ...)
@@ -258,34 +306,11 @@ func (c *Compiler) compileLambda(fs *funcState, lambdaArgs []types.Object) (*reg
 	if len(lambdaArgs) < 2 {
 		return nil, c.error("lambda: invalid syntax")
 	}
-	var argSyms []*types.Symbol
-
-	var mode types.ArgMode
-	switch args := lambdaArgs[0].(type) {
-	case *types.Nil:
-		mode = types.FixedArgMode
-		argSyms = []*types.Symbol{}
-	case *types.Symbol:
-		mode = types.VArgMode
-		argSyms = []*types.Symbol{args}
-	case *types.Pair:
-		mode = types.FixedArgMode
-		argsArr, err := args.Slice()
-		if err != nil {
-			return nil, err
-		}
-		argSyms = make([]*types.Symbol, len(argsArr))
-		for i, arg := range argsArr {
-			sym, ok := arg.(*types.Symbol)
-			if !ok {
-				return nil, c.error("lambda: invalid syntax")
-			}
-			argSyms[i] = sym
-		}
-	default:
-		return nil, c.error("lambda: invalid syntax")
-
+	argSyms, mode, err := c.lambdaForm(lambdaArgs[0])
+	if err != nil {
+		return nil, err
 	}
+
 	child := newFuncState(fs)
 	child.proto.Args = argSyms
 	child.proto.Mode = mode

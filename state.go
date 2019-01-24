@@ -108,6 +108,13 @@ func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 		case types.VArgMode:
 			args := s.popArgs(nargs)
 			s.CallStack.Push(types.List(args...))
+		case types.RestArgMode:
+			if nargs < len(cl.Proto.Args) {
+				return nil, fmt.Errorf("insufficient number of arguments")
+			}
+			nrest := nargs - len(cl.Proto.Args) + 1
+			rest := s.popArgs(nrest)
+			s.CallStack.Push(types.List(rest...))
 		}
 		ci := &types.CallInfo{Cl: cl, Base: clIndex + 1, FuncSp: clIndex}
 		s.CallInfos.Push(ci)
