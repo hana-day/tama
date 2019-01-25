@@ -166,6 +166,10 @@ func (fs *funcState) nextPc() int {
 	return len(fs.proto.Insts)
 }
 
+func (fs *funcState) currentPc() int {
+	return len(fs.proto.Insts) - 1
+}
+
 func (c *Compiler) error(format string, a ...interface{}) error {
 	return fmt.Errorf("compiler: %s", fmt.Sprintf(format, a...))
 }
@@ -377,7 +381,7 @@ func (c *Compiler) compileBegin(fs *funcState, args []types.Object) (*reg, error
 	if len(args) == 0 {
 		return nil, c.error("begin: invalid syntax")
 	}
-	regs, err := c.compileObjects(fs, args)
+	regs, err := c.compileTailObjects(fs, args)
 	if err != nil {
 		return nil, err
 	}
@@ -450,14 +454,14 @@ func (c *Compiler) compileIf(fs *funcState, argsArr []types.Object) (*reg, error
 	fs.addASbx(OP_JMP, 0, 0) // jump to else expr. sbx will be set later
 
 	thenPc := fs.nextPc()
-	thenR, err := c.compileObject(fs, argsArr[1])
+	thenR, err := c.compileTailObject(fs, argsArr[1])
 	fs.addABC(OP_MOVE, resultR.n, thenR.n, 0)
 	lastJmpPc := fs.nextPc()
 	fs.addASbx(OP_JMP, 0, 0) // jump to last expr. sbx will be set later.
 
 	elsePc := fs.nextPc()
 	if elseExists { // (if test consequent alternate)
-		elseR, err := c.compileObject(fs, argsArr[2])
+		elseR, err := c.compileTailObject(fs, argsArr[2])
 		if err != nil {
 			return nil, err
 		}
@@ -473,7 +477,7 @@ func (c *Compiler) compileIf(fs *funcState, argsArr []types.Object) (*reg, error
 	return resultR, nil
 }
 
-func (c *Compiler) compileCall(fs *funcState, proc types.Object, args []types.Object) (*reg, error) {
+func (c *Compiler) compileCall(fs *funcState, proc types.Object, args []types.Object, tail bool) (*reg, error) {
 	procR, err := c.compileObject(fs, proc)
 	if err != nil {
 		return nil, err
@@ -496,11 +500,15 @@ func (c *Compiler) compileCall(fs *funcState, proc types.Object, args []types.Ob
 		fs.addABC(OP_MOVE, regs[i].n, r.n, 0)
 	}
 	// Always return one value
-	fs.addABC(OP_CALL, newProcR.n, 1+len(args), 2)
+	op := OP_CALL
+	if tail {
+		op = OP_TAILCALL
+	}
+	fs.addABC(op, newProcR.n, 1+len(args), 2)
 	return newProcR, nil
 }
 
-func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
+func (c *Compiler) compilePair(fs *funcState, pair *types.Pair, tail bool) (*reg, error) {
 	if pair.Len() == 0 {
 		return nil, c.error("invalid syntax %s", pair.String())
 	}
@@ -530,12 +538,27 @@ func (c *Compiler) compilePair(fs *funcState, pair *types.Pair) (*reg, error) {
 		case "if":
 			return c.compileIf(fs, argsArr)
 		default: // (procedure-name args...)
-			return c.compileCall(fs, first, argsArr)
+			return c.compileCall(fs, first, argsArr, tail)
 		}
 	case *types.Pair: // ((procedure-name args...) args...)
-		return c.compileCall(fs, first, argsArr)
+		return c.compileCall(fs, first, argsArr, tail)
 	}
 	return nil, c.error("invalid procedure name %v", v)
+}
+
+func (c *Compiler) compileTailObject(fs *funcState, obj types.Object) (*reg, error) {
+	switch o := obj.(type) {
+	case types.Number:
+		return c.compileNumber(fs, o), nil
+	case types.Boolean:
+		return c.compileBoolean(fs, o), nil
+	case *types.Symbol:
+		return c.compileSymbol(fs, o), nil
+	case *types.Pair:
+		return c.compilePair(fs, o, true)
+	default:
+		return nil, c.error("Unknown type of object %v", o)
+	}
 }
 
 func (c *Compiler) compileObject(fs *funcState, obj types.Object) (*reg, error) {
@@ -547,10 +570,22 @@ func (c *Compiler) compileObject(fs *funcState, obj types.Object) (*reg, error) 
 	case *types.Symbol:
 		return c.compileSymbol(fs, o), nil
 	case *types.Pair:
-		return c.compilePair(fs, o)
+		return c.compilePair(fs, o, false)
 	default:
 		return nil, c.error("Unknown type of object %v", o)
 	}
+}
+
+func (c *Compiler) compileTailObjects(fs *funcState, objs []types.Object) ([]*reg, error) {
+	regs := make([]*reg, len(objs))
+	for i, obj := range objs {
+		reg, err := c.compileTailObject(fs, obj)
+		if err != nil {
+			return regs, err
+		}
+		regs[i] = reg
+	}
+	return regs, nil
 }
 
 func (c *Compiler) compileObjects(fs *funcState, objs []types.Object) ([]*reg, error) {

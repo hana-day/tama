@@ -152,6 +152,39 @@ reentry:
 			if debug {
 				fmt.Printf("%-20s ; R[%d] ... R[%d] = undefined\n", compiler.DumpInst(inst), ra, rb)
 			}
+		case compiler.OP_TAILCALL:
+			b := compiler.GetArgB(inst)
+			s.CallStack.SetSp(ra + b - 1)
+			if debug {
+				cl := s.CallStack.Get(ra)
+				fmt.Printf("%-20s ; R[%d] = %v(R[%d]...R[%d])\n", compiler.DumpInst(inst), ra, cl, ra+1, ra+b-1)
+			}
+			curCi, err := s.precall(ra)
+			if err != nil {
+				return err
+			}
+
+			// precalled scheme closure
+			if !curCi.Cl.IsGo {
+				nargs := s.CallStack.Sp() - ra
+
+				// pop current call info
+				_ = s.CallInfos.Pop()
+				prevCi := s.CallInfos.Top().(*types.CallInfo)
+
+				// place the current closure and arguments to the previous closure sp
+				s.CallStack.Set(prevCi.FuncSp, curCi.Cl)
+				for i := 0; i < nargs; i++ {
+					s.CallStack.Set(prevCi.FuncSp+i+1, s.CallStack.Get(curCi.FuncSp+i+1))
+				}
+				s.CallStack.SetSp(prevCi.FuncSp + nargs)
+
+				// set information of tailcalling function to the previous call info
+				prevCi.Cl = curCi.Cl
+				prevCi.Pc = 0
+
+				goto reentry
+			}
 		}
 	}
 	return nil

@@ -7,7 +7,15 @@ import (
 	"github.com/hyusuk/tama/types"
 )
 
-var DefaultStackSize = 256 * 20
+const (
+	DefaultStackSize     = 256 * 20
+	DefaultCallInfosSize = 256
+)
+
+type Option struct {
+	StackSize     int
+	CallInfosSize int
+}
 
 type State struct {
 	// call stack
@@ -19,10 +27,17 @@ type State struct {
 
 type GoFunc = func(s *State, args []types.Object) (types.Object, error)
 
-func NewState() *State {
+func NewState(option Option) *State {
+	if option.StackSize == 0 {
+		option.StackSize = DefaultStackSize
+	}
+	if option.CallInfosSize == 0 {
+		option.CallInfosSize = DefaultCallInfosSize
+	}
+
 	s := &State{
-		CallStack: types.NewStack(DefaultStackSize),
-		CallInfos: types.NewStack(DefaultStackSize),
+		CallStack: types.NewStack(option.StackSize),
+		CallInfos: types.NewStack(option.CallInfosSize),
 		Global:    map[string]types.Object{},
 	}
 	s.OpenBase()

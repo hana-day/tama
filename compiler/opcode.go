@@ -22,6 +22,7 @@ const (
 	// LOADUNDEF A B    R(A) := ... := R(B) := undefined
 	// Sets a range of registers from R(A) to R(B) to undefined.
 	OP_LOADUNDEF
+	OP_TAILCALL
 )
 
 type opType int
@@ -51,6 +52,7 @@ var opProps = []opProp{
 	opProp{"TEST", opTypeABC},
 	opProp{"JMP", opTypeASbx},
 	opProp{"LOADUNDEF", opTypeABC},
+	opProp{"TAILCALL", opTypeABC},
 }
 
 const (
