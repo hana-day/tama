@@ -263,10 +263,12 @@ func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, erro
 	default:
 		return nil, c.error("define: invalid syntax")
 	}
-	r, err := c.compileGlobalAssign(fs, varname, expr)
+	_, err := c.compileGlobalAssign(fs, varname, expr)
 	if err != nil {
 		return nil, err
 	}
+	r := fs.newReg()
+	fs.addABC(OP_LOADUNDEF, r.n, r.n, 0)
 	return r, nil
 }
 
