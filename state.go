@@ -8,13 +8,14 @@ import (
 )
 
 const (
-	DefaultStackSize     = 256 * 20
-	DefaultCallInfosSize = 256
+	DefaultStackSize    = 256 * 20
+	DefaultCallInfoSize = 256
 )
 
 type Option struct {
-	StackSize     int
-	CallInfosSize int
+	StackSize    int
+	CallInfoSize int
+	Debug        bool
 }
 
 type State struct {
@@ -23,6 +24,7 @@ type State struct {
 	CallInfos *types.Stack
 	Global    map[string]types.Object
 	uvhead    *types.UpValue
+	Debug     bool
 }
 
 type GoFunc = func(s *State, args []types.Object) (types.Object, error)
@@ -31,14 +33,15 @@ func NewState(option Option) *State {
 	if option.StackSize == 0 {
 		option.StackSize = DefaultStackSize
 	}
-	if option.CallInfosSize == 0 {
-		option.CallInfosSize = DefaultCallInfosSize
+	if option.CallInfoSize == 0 {
+		option.CallInfoSize = DefaultCallInfoSize
 	}
 
 	s := &State{
 		CallStack: types.NewStack(option.StackSize),
-		CallInfos: types.NewStack(option.CallInfosSize),
+		CallInfos: types.NewStack(option.CallInfoSize),
 		Global:    map[string]types.Object{},
+		Debug:     option.Debug,
 	}
 	s.OpenBase()
 	return s
@@ -149,7 +152,7 @@ func (s *State) call(nargs int) error {
 	if _, err := s.precall(clIndex); err != nil {
 		return err
 	}
-	return runVM(s, true)
+	return runVM(s, s.Debug)
 }
 
 func (s *State) ExecString(source string) error {

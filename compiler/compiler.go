@@ -579,7 +579,13 @@ func (c *Compiler) compileObject(fs *funcState, obj types.Object) (*reg, error) 
 func (c *Compiler) compileTailObjects(fs *funcState, objs []types.Object) ([]*reg, error) {
 	regs := make([]*reg, len(objs))
 	for i, obj := range objs {
-		reg, err := c.compileTailObject(fs, obj)
+		var reg *reg
+		var err error
+		if i == len(objs)-1 {
+			reg, err = c.compileTailObject(fs, obj)
+		} else {
+			reg, err = c.compileObject(fs, obj)
+		}
 		if err != nil {
 			return regs, err
 		}

@@ -28,10 +28,14 @@ reentry:
 			}
 		case compiler.OP_GETGLOBAL:
 			bx := compiler.GetArgBx(inst)
-			v, _ := s.GetGlobal(cl.Proto.Consts[bx].String())
+			k := cl.Proto.Consts[bx].String()
+			v, ok := s.GetGlobal(k)
+			if !ok {
+				return fmt.Errorf("vm: unbound symbol: %s", k)
+			}
 			s.CallStack.Set(ra, v)
 			if debug {
-				fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, v)
+				fmt.Printf("%-20s ; R[%d] = %v with key %s\n", compiler.DumpInst(inst), ra, v, k)
 			}
 		case compiler.OP_SETGLOBAL:
 			bx := compiler.GetArgBx(inst)

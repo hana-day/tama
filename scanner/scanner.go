@@ -68,7 +68,14 @@ func (s *Scanner) scanIdentifier() string {
 	return string(s.src[offs:s.offset])
 }
 
+func (s *Scanner) scanComment() {
+	for s.ch != '\n' && s.ch != '\r' && s.ch != eofCh {
+		s.next()
+	}
+}
+
 func (s *Scanner) Scan() (tok Token, lit string, err error) {
+scanAgain:
 	s.skipSpaces()
 	ch := s.ch
 	if isDigit(ch) {
@@ -101,6 +108,9 @@ func (s *Scanner) Scan() (tok Token, lit string, err error) {
 		default:
 			return ILLEGAL, "", fmt.Errorf("scanner: unexpected token %c", s.ch)
 		}
+	case ';':
+		s.scanComment()
+		goto scanAgain
 	default:
 		return ILLEGAL, "", fmt.Errorf("scanner: unexpected token %c", ch)
 	}
