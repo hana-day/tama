@@ -65,3 +65,12 @@ func List(args ...Object) Object {
 		cdr: List(args[1:len(args)]...),
 	}
 }
+
+func AssertType(typ ObjectType, objs ...Object) error {
+	for _, obj := range objs {
+		if obj.Type() != typ {
+			return NewTypeError("%s required, but got %v", typeProps[typ].name, obj)
+		}
+	}
+	return nil
+}

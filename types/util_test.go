@@ -44,7 +44,7 @@ func TestIs(t *testing.T) {
 
 		// test IsClosure
 		{NewScmClosure(nil, 0), true, IsClosure},
-		{NewGoClosure("a", nil), true, IsClosure},
+		{NewGoClosure("a", 0, 0, nil), true, IsClosure},
 		{Number(1), false, IsClosure},
 
 		// test IsList

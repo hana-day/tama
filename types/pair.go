@@ -102,7 +102,3 @@ func (p *Pair) Second() (Object, error) {
 func (p *Pair) Third() (Object, error) {
 	return p.Cddar()
 }
-
-func (s *Symbol) Type() ObjectType {
-	return TySymbol
-}

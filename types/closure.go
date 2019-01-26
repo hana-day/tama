@@ -38,7 +38,9 @@ type Closure struct {
 
 	// go closure only
 	Fn     interface{}
-	fnName string
+	FnName string
+	MinArg int
+	MaxArg int
 
 	UpVals []*UpValue
 }
@@ -73,7 +75,7 @@ func NewClosureProto() *ClosureProto {
 
 func (cl *Closure) String() string {
 	if cl.IsGo {
-		return fmt.Sprintf("closure (go func '%s')", cl.fnName)
+		return fmt.Sprintf("closure (go func '%s')", cl.FnName)
 	}
 	return "closure"
 }
@@ -90,11 +92,13 @@ func NewScmClosure(proto *ClosureProto, nUpVals int) *Closure {
 	}
 }
 
-func NewGoClosure(name string, fn interface{}) *Closure {
+func NewGoClosure(name string, minArg int, maxArg int, fn interface{}) *Closure {
 	return &Closure{
 		IsGo:   true,
 		Fn:     fn,
-		fnName: name,
+		FnName: name,
+		MinArg: minArg,
+		MaxArg: maxArg,
 	}
 }
 

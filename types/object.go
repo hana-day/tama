@@ -6,6 +6,11 @@ import (
 
 type ObjectType int
 
+type typeProp struct {
+	typ  ObjectType
+	name string
+}
+
 const (
 	TyNumber ObjectType = iota
 	TyString
@@ -20,6 +25,20 @@ const (
 
 	TyCallInfo // for internal use
 )
+
+var typeProps = []*typeProp{
+	&typeProp{TyNumber, "number"},
+	&typeProp{TyString, "string"},
+	&typeProp{TyClosure, "closure"},
+	&typeProp{TyNil, "nil"},
+	&typeProp{TySymbol, "symbol"},
+	&typeProp{TyPair, "pair"},
+	&typeProp{TyBoolean, "boolean"},
+	&typeProp{TySyntax, "syntax"},
+	&typeProp{TyUndefined, "undefined"},
+	&typeProp{TyError, "error"},
+	&typeProp{TyCallInfo, "callinfo"},
+}
 
 type Object interface {
 	String() string
@@ -66,6 +85,10 @@ func NewSymbol(name string) *Symbol {
 
 func (s *Symbol) String() string {
 	return s.Name.String()
+}
+
+func (s *Symbol) Type() ObjectType {
+	return TySymbol
 }
 
 func (n *Nil) String() string {

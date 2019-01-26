@@ -1,6 +1,7 @@
 package tama
 
 import (
+	"fmt"
 	"github.com/hyusuk/tama/compiler"
 	"github.com/hyusuk/tama/parser"
 	"github.com/hyusuk/tama/types"
@@ -79,6 +80,19 @@ func (s *State) popArgs(nargs int) []types.Object {
 	return args
 }
 
+func (s *State) checkArgNumber(name string, nargs, minArg, maxArg int) error {
+	if nargs < minArg {
+		return types.NewInternalError("%s: too few arguments (at least: %d got: %d)", name, minArg, nargs)
+	}
+	if maxArg < 0 {
+		return nil
+	}
+	if nargs > maxArg {
+		return types.NewInternalError("%s: too many arguments (at most: %d got: %d)", name, maxArg, nargs)
+	}
+	return nil
+}
+
 // precall prepares the function call.
 // If the function is a scheme-function, push call information onto the stack.
 // If the function is a go-function, push call information onto the stack and call it.
@@ -109,6 +123,9 @@ func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 			return nil, types.NewInternalError("invalid function %v", cl.Fn)
 		}
 		args := s.popArgs(nargs)
+		if err := s.checkArgNumber(cl.FnName, nargs, cl.MinArg, cl.MaxArg); err != nil {
+			return nil, err
+		}
 		retval, err := fn(s, args)
 		if err != nil {
 			return nil, err
@@ -216,7 +233,18 @@ func (s *State) GetGlobal(name string) (obj types.Object, ok bool) {
 	return
 }
 
-func (s *State) RegisterFunc(name string, fn GoFunc) {
-	cl := types.NewGoClosure(name, fn)
+// RegisterFunc registers fn as a scheme procedure.
+// name is the name of the procedure.
+// minArg is the minimum number of arguments and it must be >= 0.
+// maxArg is the maximum number of arguments. If maxArg < 0, it is treated as infinity.
+func (s *State) RegisterFunc(name string, minArg int, maxArg int, fn GoFunc) error {
+	if minArg < 0 {
+		return fmt.Errorf("the minimum number of arguments must be >= 0")
+	}
+	if maxArg < 0 {
+		maxArg = -1
+	}
+	cl := types.NewGoClosure(name, minArg, maxArg, fn)
 	s.SetGlobal(name, cl)
+	return nil
 }
