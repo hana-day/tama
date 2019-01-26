@@ -47,20 +47,6 @@ func fnCdr(s *State, args []types.Object) (types.Object, error) {
 	return pair.Cdr(), nil
 }
 
-func fnNumEq(s *State, args []types.Object) (types.Object, error) {
-	if err := types.AssertType(types.TyNumber, args...); err != nil {
-		return nil, err
-	}
-	num := args[0].(types.Number)
-	for _, arg := range args[1:] {
-		num2 := arg.(types.Number)
-		if num != num2 {
-			return types.Boolean(false), nil
-		}
-	}
-	return types.Boolean(true), nil
-}
-
 func fnAdd(s *State, args []types.Object) (types.Object, error) {
 	if err := types.AssertType(types.TyNumber, args...); err != nil {
 		return nil, err
@@ -109,8 +95,11 @@ func fnDiv(s *State, args []types.Object) (types.Object, error) {
 		return nil, err
 	}
 	num := args[0].(types.Number)
+	if len(args) == 1 {
+		return 1 / num, nil
+	}
 	result := num
-	for _, arg := range args {
+	for _, arg := range args[1:] {
 		num := arg.(types.Number)
 		if num == 0 {
 			return nil, types.NewInternalError("division by zero")
@@ -118,6 +107,20 @@ func fnDiv(s *State, args []types.Object) (types.Object, error) {
 		result /= num
 	}
 	return result, nil
+}
+
+func fnNumEq(s *State, args []types.Object) (types.Object, error) {
+	if err := types.AssertType(types.TyNumber, args...); err != nil {
+		return nil, err
+	}
+	num := args[0].(types.Number)
+	for _, arg := range args[1:] {
+		num2 := arg.(types.Number)
+		if num != num2 {
+			return types.Boolean(false), nil
+		}
+	}
+	return types.Boolean(true), nil
 }
 
 func genFnComp(name string) GoFunc {
