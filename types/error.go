@@ -37,3 +37,7 @@ func (e *Error) Type() ObjectType {
 func (e *Error) Error() string {
 	return e.s
 }
+
+func (e *Error) Set(s string) {
+	e.s = s
+}

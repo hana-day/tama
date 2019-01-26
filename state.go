@@ -128,6 +128,10 @@ func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 		}
 		retval, err := fn(s, args)
 		if err != nil {
+			if scmErr, ok := err.(*types.Error); ok {
+				scmErr.Set(fmt.Sprintf("%s: %s", cl.FnName, scmErr.Error()))
+				return nil, scmErr
+			}
 			return nil, err
 		}
 		s.CallStack.Push(retval)

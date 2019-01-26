@@ -12,14 +12,18 @@ func (s *State) OpenBase() *State {
 	}
 
 	// set procedures
-	s.RegisterFunc("+", 0, -1, genFnArith("+"))
-	s.RegisterFunc("-", 1, -1, genFnArith("-"))
-	s.RegisterFunc("*", 0, -1, genFnArith("*"))
-	s.RegisterFunc("/", 1, -1, genFnArith("/"))
+	s.RegisterFunc("+", 0, -1, fnAdd)
+	s.RegisterFunc("-", 1, -1, fnSub)
+	s.RegisterFunc("*", 0, -1, fnMul)
+	s.RegisterFunc("/", 1, -1, fnDiv)
 	s.RegisterFunc("cons", 2, 2, fnCons)
 	s.RegisterFunc("car", 1, 1, fnCar)
 	s.RegisterFunc("cdr", 1, 1, fnCdr)
 	s.RegisterFunc("=", 2, -1, fnNumEq)
+	s.RegisterFunc("<", 2, -1, genFnComp("<"))
+	s.RegisterFunc(">", 2, -1, genFnComp(">"))
+	s.RegisterFunc("<=", 2, -1, genFnComp("<="))
+	s.RegisterFunc(">=", 2, -1, genFnComp(">="))
 	return s
 }
 
@@ -57,31 +61,89 @@ func fnNumEq(s *State, args []types.Object) (types.Object, error) {
 	return types.Boolean(true), nil
 }
 
-func genFnArith(name string) GoFunc {
+func fnAdd(s *State, args []types.Object) (types.Object, error) {
+	if err := types.AssertType(types.TyNumber, args...); err != nil {
+		return nil, err
+	}
+	var result types.Number = 0
+	for _, arg := range args {
+		num := arg.(types.Number)
+		result += num
+	}
+	return result, nil
+}
+
+func fnSub(s *State, args []types.Object) (types.Object, error) {
+	if err := types.AssertType(types.TyNumber, args...); err != nil {
+		return nil, err
+	}
+	num := args[0].(types.Number)
+	if len(args) == 1 {
+		return -1 * num, nil
+	}
+	result := num
+	for _, arg := range args[1:] {
+		num := arg.(types.Number)
+		result -= num
+	}
+	return result, nil
+}
+
+func fnMul(s *State, args []types.Object) (types.Object, error) {
+	if err := types.AssertType(types.TyNumber, args...); err != nil {
+		return nil, err
+	}
+	result := types.Number(1)
+	for _, arg := range args {
+		num := arg.(types.Number)
+		if num == 0 {
+			return types.Number(0), nil
+		}
+		result *= num
+	}
+	return result, nil
+}
+
+func fnDiv(s *State, args []types.Object) (types.Object, error) {
+	if err := types.AssertType(types.TyNumber, args...); err != nil {
+		return nil, err
+	}
+	num := args[0].(types.Number)
+	result := num
+	for _, arg := range args {
+		num := arg.(types.Number)
+		if num == 0 {
+			return nil, types.NewInternalError("division by zero")
+		}
+		result /= num
+	}
+	return result, nil
+}
+
+func genFnComp(name string) GoFunc {
 	return func(s *State, args []types.Object) (types.Object, error) {
 		if err := types.AssertType(types.TyNumber, args...); err != nil {
 			return nil, err
 		}
-		result := args[0].(types.Number)
+		prev := args[0].(types.Number)
+		var yes bool
 		for _, arg := range args[1:] {
-			num := arg.(types.Number)
+			next := arg.(types.Number)
 			switch name {
-			case "+":
-				result += num
-			case "-":
-				result -= num
-			case "*":
-				if num == 0 {
-					return types.Number(0), nil
-				}
-				result *= num
-			case "/":
-				if num == 0 {
-					return nil, types.NewInternalError("/: division by zero")
-				}
-				result /= num
+			case "<":
+				yes = prev < next
+			case ">":
+				yes = prev > next
+			case "<=":
+				yes = prev <= next
+			case ">=":
+				yes = prev >= next
+			}
+			prev = next
+			if !yes {
+				return types.Boolean(false), nil
 			}
 		}
-		return result, nil
+		return types.Boolean(true), nil
 	}
 }

@@ -196,6 +196,11 @@ func TestExecuteString(t *testing.T) {
 			"(define a 1) ; (set! a 2)\na",
 			"1",
 		},
+		{
+			func() *State { return NewState(Option{}) },
+			"(+ (if (< 1 2) 1 0) (if (> 2 1) 1 0) (if (<= 1 2) 1 0) (if (>= 2 1) 1 0))",
+			"4",
+		},
 	}
 	for i, tc := range testcases {
 		s := tc.stateFactory()
