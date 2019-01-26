@@ -2,7 +2,7 @@ package scanner
 
 import (
 	"bytes"
-	"fmt"
+	"github.com/hyusuk/tama/types"
 )
 
 type Scanner struct {
@@ -106,13 +106,13 @@ scanAgain:
 		case 'f':
 			tok = FALSE
 		default:
-			return ILLEGAL, "", fmt.Errorf("scanner: unexpected token %c", s.ch)
+			return ILLEGAL, "", types.NewSyntaxError("unexpected token %c", s.ch)
 		}
 	case ';':
 		s.scanComment()
 		goto scanAgain
 	default:
-		return ILLEGAL, "", fmt.Errorf("scanner: unexpected token %c", ch)
+		return ILLEGAL, "", types.NewSyntaxError("unexpected token %c", s.ch)
 	}
 	return
 }

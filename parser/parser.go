@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"github.com/hyusuk/tama/scanner"
 	"github.com/hyusuk/tama/types"
 	"strconv"
@@ -25,10 +24,6 @@ func (p *Parser) Init(src []byte) error {
 	return nil
 }
 
-func (p *Parser) error(format string, a ...interface{}) error {
-	return fmt.Errorf("parse error: %s", fmt.Sprintf(format, a...))
-}
-
 func (p *Parser) next() error {
 	var err error
 	if p.tok, p.lit, err = p.scanner.Scan(); err != nil {
@@ -39,7 +34,7 @@ func (p *Parser) next() error {
 
 func (p *Parser) expect(tok scanner.Token) error {
 	if p.tok != tok {
-		return p.error("expected token %d, but got %d", tok, p.tok)
+		return types.NewSyntaxError("expected token %d, but got %d", tok, p.tok)
 	}
 	if err := p.next(); err != nil {
 		return err
@@ -50,7 +45,7 @@ func (p *Parser) expect(tok scanner.Token) error {
 func (p *Parser) parseInt() (types.Object, error) {
 	f, err := strconv.ParseFloat(p.lit, 64)
 	if err != nil {
-		return nil, p.error("cannot parse number")
+		return nil, types.NewSyntaxError("cannot parse %s as a number", p.lit)
 	}
 	n := types.Number(f)
 	return n, p.next()
@@ -106,7 +101,7 @@ func (p *Parser) parseObject() (types.Object, error) {
 		}
 		return types.Boolean(false), nil
 	default:
-		return nil, p.error("unexpected token %d", p.tok)
+		return nil, types.NewSyntaxError("unexpected token %d", p.tok)
 
 	}
 }

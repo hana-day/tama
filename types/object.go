@@ -16,6 +16,7 @@ const (
 	TyBoolean
 	TySyntax
 	TyUndefined
+	TyError
 
 	TyCallInfo // for internal use
 )

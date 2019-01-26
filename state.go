@@ -1,7 +1,6 @@
 package tama
 
 import (
-	"fmt"
 	"github.com/hyusuk/tama/compiler"
 	"github.com/hyusuk/tama/parser"
 	"github.com/hyusuk/tama/types"
@@ -98,7 +97,7 @@ func (s *State) popArgs(nargs int) []types.Object {
 func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 	cl, ok := s.CallStack.Get(clIndex).(*types.Closure)
 	if !ok {
-		return nil, fmt.Errorf("function is not loaded")
+		return nil, types.NewInternalError("function is not loaded")
 	}
 	nargs := s.CallStack.Sp() - clIndex
 	if cl.IsGo {
@@ -107,7 +106,7 @@ func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 
 		fn, ok := cl.Fn.(GoFunc)
 		if !ok {
-			return nil, fmt.Errorf("invalid function %v", cl.Fn)
+			return nil, types.NewInternalError("invalid function %v", cl.Fn)
 		}
 		args := s.popArgs(nargs)
 		retval, err := fn(s, args)
@@ -121,14 +120,14 @@ func (s *State) precall(clIndex int) (*types.CallInfo, error) {
 		switch cl.Proto.Mode {
 		case types.FixedArgMode:
 			if nargs != len(cl.Proto.Args) {
-				return nil, fmt.Errorf("invalid number of arguments")
+				return nil, types.NewInternalError("invalid number of arguments")
 			}
 		case types.VArgMode:
 			args := s.popArgs(nargs)
 			s.CallStack.Push(types.List(args...))
 		case types.RestArgMode:
 			if nargs < len(cl.Proto.Args) {
-				return nil, fmt.Errorf("insufficient number of arguments")
+				return nil, types.NewInternalError("insufficient number of arguments")
 			}
 			nrest := nargs - len(cl.Proto.Args) + 1
 			rest := s.popArgs(nrest)

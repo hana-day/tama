@@ -31,7 +31,7 @@ reentry:
 			k := cl.Proto.Consts[bx].String()
 			v, ok := s.GetGlobal(k)
 			if !ok {
-				return fmt.Errorf("vm: unbound symbol: %s", k)
+				return types.NewInternalError("unbound symbol '%s'", k)
 			}
 			s.CallStack.Set(ra, v)
 			if debug {
@@ -95,7 +95,7 @@ reentry:
 		case compiler.OP_RETURN:
 			b := compiler.GetArgB(inst)
 			if b != 2 {
-				return fmt.Errorf("vm: invalid number of returns")
+				return types.NewInternalError("invalid number of returns")
 			}
 			if debug {
 				fmt.Printf("%-20s ; return R[%d]\n", compiler.DumpInst(inst), ra)

@@ -1,7 +1,6 @@
 package compiler
 
 import (
-	"fmt"
 	"github.com/hyusuk/tama/types"
 )
 
@@ -170,10 +169,6 @@ func (fs *funcState) currentPc() int {
 	return len(fs.proto.Insts) - 1
 }
 
-func (c *Compiler) error(format string, a ...interface{}) error {
-	return fmt.Errorf("compiler: %s", fmt.Sprintf(format, a...))
-}
-
 func (c *Compiler) compileNumber(fs *funcState, num types.Number) *reg {
 	r := fs.newReg()
 	fs.addABx(OP_LOADK, r.n, fs.constIndex(num))
@@ -220,7 +215,7 @@ func (c *Compiler) compileGlobalAssign(fs *funcState, varname *types.Symbol, val
 // (define (variable . formal) body)
 func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, error) {
 	if len(args) < 2 {
-		return nil, c.error("define: invalid syntax")
+		return nil, types.NewSyntaxError("define: invalid syntax")
 	}
 
 	var varname *types.Symbol
@@ -233,7 +228,7 @@ func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, erro
 	case *types.Pair: // (define (variable formals) body)
 		sym, ok := first.Car().(*types.Symbol)
 		if !ok {
-			return nil, c.error("define: invalid syntax")
+			return nil, types.NewSyntaxError("define: invalid syntax")
 		}
 		varname = sym
 		lambdaExpr := []types.Object{types.NewSymbol("lambda")}
@@ -241,7 +236,7 @@ func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, erro
 			second, _ := first.Second()
 			sym, ok := second.(*types.Symbol)
 			if !ok {
-				return nil, c.error("define: invalid syntax")
+				return nil, types.NewSyntaxError("define: invalid syntax")
 			}
 			// convert
 			// (define (variable . formal) body)
@@ -265,7 +260,7 @@ func (c *Compiler) compileDefine(fs *funcState, args []types.Object) (*reg, erro
 		lambdaExpr = append(lambdaExpr, args[1:]...)
 		expr = types.List(lambdaExpr...)
 	default:
-		return nil, c.error("define: invalid syntax")
+		return nil, types.NewSyntaxError("define: invalid syntax")
 	}
 	_, err := c.compileGlobalAssign(fs, varname, expr)
 	if err != nil {
@@ -297,7 +292,7 @@ func (c *Compiler) lambdaForm(formals types.Object) ([]*types.Symbol, types.ArgM
 		for i, arg := range argsArr {
 			sym, ok := arg.(*types.Symbol)
 			if !ok {
-				return nil, 0, c.error("lambda: invalid syntax")
+				return nil, 0, types.NewSyntaxError("lambda: invalid syntax")
 			}
 			argSyms[i] = sym
 		}
@@ -312,14 +307,14 @@ func (c *Compiler) lambdaForm(formals types.Object) ([]*types.Symbol, types.ArgM
 		case 1:
 			mode = types.RestArgMode
 			if len(argsArr) < 3 || argSyms[len(argSyms)-2].Name != "." {
-				return nil, 0, c.error("lambda: invalid syntax")
+				return nil, 0, types.NewSyntaxError("lambda: invalid syntax")
 			}
 			argSyms = append(argSyms[:len(argSyms)-2], argSyms[len(argSyms)-1:]...)
 		case 2:
-			return nil, 0, c.error("lambda: invalid syntax")
+			return nil, 0, types.NewSyntaxError("lambda: invalid syntax")
 		}
 	default:
-		return nil, 0, c.error("lambda: invalid syntax")
+		return nil, 0, types.NewSyntaxError("lambda: invalid syntax")
 	}
 	return argSyms, mode, nil
 }
@@ -331,7 +326,7 @@ func (c *Compiler) lambdaForm(formals types.Object) ([]*types.Symbol, types.ArgM
 // (lambda (x y . rest) ...)
 func (c *Compiler) compileLambda(fs *funcState, lambdaArgs []types.Object) (*reg, error) {
 	if len(lambdaArgs) < 2 {
-		return nil, c.error("lambda: invalid syntax")
+		return nil, types.NewSyntaxError("lambda: invalid syntax")
 	}
 	argSyms, mode, err := c.lambdaForm(lambdaArgs[0])
 	if err != nil {
@@ -379,7 +374,7 @@ func (c *Compiler) compileLambda(fs *funcState, lambdaArgs []types.Object) (*reg
 
 func (c *Compiler) compileBegin(fs *funcState, args []types.Object) (*reg, error) {
 	if len(args) == 0 {
-		return nil, c.error("begin: invalid syntax")
+		return nil, types.NewSyntaxError("begin: invalid syntax")
 	}
 	regs, err := c.compileTailObjects(fs, args)
 	if err != nil {
@@ -390,11 +385,11 @@ func (c *Compiler) compileBegin(fs *funcState, args []types.Object) (*reg, error
 
 func (c *Compiler) compileSet(fs *funcState, args []types.Object) (*reg, error) {
 	if len(args) != 2 {
-		return nil, c.error("set!: invalid syntax")
+		return nil, types.NewSyntaxError("set!: invalid syntax")
 	}
 	varname, ok := args[0].(*types.Symbol)
 	if !ok {
-		return nil, c.error("set!: invalid syntax")
+		return nil, types.NewSyntaxError("set!: invalid syntax")
 	}
 	expr := args[1]
 	switch fs.getVarType(varname) {
@@ -419,7 +414,7 @@ func (c *Compiler) compileSet(fs *funcState, args []types.Object) (*reg, error) 
 		}
 		fs.addABC(OP_SETUPVAL, valueR.n, fs.upValueIndex(varname.Name), 0)
 	default:
-		return nil, c.error("set!: unsupported var type")
+		return nil, types.NewSyntaxError("set!: unsupported var type")
 	}
 	r := fs.newReg()
 	fs.addABC(OP_LOADUNDEF, r.n, r.n, 0)
@@ -428,7 +423,7 @@ func (c *Compiler) compileSet(fs *funcState, args []types.Object) (*reg, error) 
 
 func (c *Compiler) compileQuote(fs *funcState, argsArr []types.Object) (*reg, error) {
 	if len(argsArr) != 1 {
-		return nil, fmt.Errorf("quote: invalid syntax")
+		return nil, types.NewSyntaxError("quote: invalid syntax")
 	}
 	r := fs.newReg()
 	fs.addABx(OP_LOADK, r.n, fs.constIndex(argsArr[0]))
@@ -437,7 +432,7 @@ func (c *Compiler) compileQuote(fs *funcState, argsArr []types.Object) (*reg, er
 
 func (c *Compiler) compileIf(fs *funcState, argsArr []types.Object) (*reg, error) {
 	if len(argsArr) != 2 && len(argsArr) != 3 {
-		return nil, fmt.Errorf("if: invalid syntax")
+		return nil, types.NewSyntaxError("if: invalid syntax")
 	}
 	elseExists := len(argsArr) == 3
 
@@ -510,12 +505,12 @@ func (c *Compiler) compileCall(fs *funcState, proc types.Object, args []types.Ob
 
 func (c *Compiler) compilePair(fs *funcState, pair *types.Pair, tail bool) (*reg, error) {
 	if pair.Len() == 0 {
-		return nil, c.error("invalid syntax %s", pair.String())
+		return nil, types.NewSyntaxError("invalid syntax %s", pair.String())
 	}
 	cdr := pair.Cdr()
 	args, ok := cdr.(types.SlicableObject)
 	if !ok {
-		return nil, c.error("invalid syntax %s", pair.String())
+		return nil, types.NewSyntaxError("invalid syntax %s", pair.String())
 	}
 	argsArr, err := args.Slice()
 	if err != nil {
@@ -543,7 +538,7 @@ func (c *Compiler) compilePair(fs *funcState, pair *types.Pair, tail bool) (*reg
 	case *types.Pair: // ((procedure-name args...) args...)
 		return c.compileCall(fs, first, argsArr, tail)
 	}
-	return nil, c.error("invalid procedure name %v", v)
+	return nil, types.NewSyntaxError("invalid procedure name %v", v)
 }
 
 func (c *Compiler) compileTailObject(fs *funcState, obj types.Object) (*reg, error) {
@@ -557,7 +552,7 @@ func (c *Compiler) compileTailObject(fs *funcState, obj types.Object) (*reg, err
 	case *types.Pair:
 		return c.compilePair(fs, o, true)
 	default:
-		return nil, c.error("Unknown type of object %v", o)
+		return nil, types.NewSyntaxError("Unknown type of object %v", o)
 	}
 }
 
@@ -572,7 +567,7 @@ func (c *Compiler) compileObject(fs *funcState, obj types.Object) (*reg, error) 
 	case *types.Pair:
 		return c.compilePair(fs, o, false)
 	default:
-		return nil, c.error("Unknown type of object %v", o)
+		return nil, types.NewSyntaxError("Unknown type of object %v", o)
 	}
 }
 

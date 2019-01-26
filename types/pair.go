@@ -25,7 +25,7 @@ func (p *Pair) Slice() ([]Object, error) {
 		arr = append(arr, pair.car)
 		pair, ok = pair.cdr.(*Pair)
 		if !ok {
-			return arr, fmt.Errorf("%v is not slicable object", p.String())
+			return arr, fmt.Errorf("%v is not slicable object", p)
 		}
 	}
 	arr = append(arr, pair.car)
@@ -54,7 +54,7 @@ func (p *Pair) Cdr() Object {
 func (p *Pair) Cdar() (Object, error) {
 	cdr, ok := p.cdr.(*Pair)
 	if !ok {
-		return nil, fmt.Errorf("pair required")
+		return nil, fmt.Errorf("cdar: attempt to get car of %v", p.cdr)
 	}
 	return cdr.car, nil
 }
@@ -62,7 +62,7 @@ func (p *Pair) Cdar() (Object, error) {
 func (p *Pair) Cddr() (Object, error) {
 	cdr, ok := p.cdr.(*Pair)
 	if !ok {
-		return nil, fmt.Errorf("pair required")
+		return nil, fmt.Errorf("cddr: attempt to get cdr of %v", p.cdr)
 	}
 	return cdr.cdr, nil
 }
@@ -74,7 +74,7 @@ func (p *Pair) Cddar() (Object, error) {
 	}
 	pair, ok := cddr.(*Pair)
 	if !ok {
-		return nil, fmt.Errorf("pair required")
+		return nil, fmt.Errorf("cddar: attempt to get car of %v", cddr)
 	}
 	return pair.car, nil
 }
@@ -86,7 +86,7 @@ func (p *Pair) Cdddr() (Object, error) {
 	}
 	pair, ok := cddr.(*Pair)
 	if !ok {
-		return nil, fmt.Errorf("pair required")
+		return nil, fmt.Errorf("cdddr: attempt to get cdr of %v", cddr)
 	}
 	return pair.cdr, nil
 }
