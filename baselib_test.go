@@ -178,3 +178,13 @@ func TestFnComp(t *testing.T) {
 	}
 	testTcases(t, tcases)
 }
+
+// 6.3.5. Strings
+func TestFnStrLen(t *testing.T) {
+	tcases := []*tcase{
+		&tcase{src: "(string-length \"test\")", expect: "4"},
+		&tcase{src: "(string-length \"\")", expect: "0"},
+		&tcase{src: "(string-length 1)", expectErr: true},
+	}
+	testTcases(t, tcases)
+}

@@ -24,6 +24,7 @@ func (s *State) OpenBase() *State {
 	s.RegisterFunc(">", 2, -1, genFnComp(">"))
 	s.RegisterFunc("<=", 2, -1, genFnComp("<="))
 	s.RegisterFunc(">=", 2, -1, genFnComp(">="))
+	s.RegisterFunc("string-length", 1, 1, fnStrLen)
 	return s
 }
 
@@ -149,4 +150,14 @@ func genFnComp(name string) GoFunc {
 		}
 		return types.Boolean(true), nil
 	}
+}
+
+// 6.3.5. Strings
+
+func fnStrLen(s *State, args []types.Object) (types.Object, error) {
+	if err := types.AssertType(types.TyString, args[0]); err != nil {
+		return nil, err
+	}
+	str := args[0].(types.String)
+	return types.Number(len(str)), nil
 }

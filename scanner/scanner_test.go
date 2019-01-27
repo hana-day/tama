@@ -52,6 +52,13 @@ func TestScan(t *testing.T) {
 				{tok: EOF, lit: ""},
 			},
 		},
+		{
+			src: []byte("\"test\""),
+			expects: []expect{
+				{tok: STRING, lit: "test"},
+				{tok: EOF, lit: ""},
+			},
+		},
 	}
 	for i, tc := range testcases {
 		s.Init(tc.src)

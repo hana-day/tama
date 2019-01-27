@@ -48,7 +48,7 @@ func (s *Scanner) skipWhitespaces() {
 
 func (s *Scanner) scanUnsigned() (Token, string) {
 	off := s.offset
-	for (s.ch >= '0' && s.ch <= '9') || s.ch == '.' {
+	for !isDelimiter(s.ch) {
 		s.next()
 	}
 	return NUMBER, string(s.src[off:s.offset])
@@ -79,6 +79,16 @@ func (s *Scanner) scanComment() {
 	for s.ch != '\n' && s.ch != '\r' && s.ch != eofCh {
 		s.next()
 	}
+}
+
+func (s *Scanner) scanString() (Token, string) {
+	offs := s.offset
+	for s.ch != '"' && s.ch != eofCh {
+		s.next()
+	}
+	offset := s.offset
+	s.next()
+	return STRING, string(s.src[offs:offset])
 }
 
 func isWhitespace(ch byte) bool {
@@ -124,6 +134,8 @@ scanAgain:
 	case '.':
 		tok = IDENT
 		lit = "."
+	case '"':
+		tok, lit = s.scanString()
 	case '(':
 		tok = LPAREN
 	case ')':

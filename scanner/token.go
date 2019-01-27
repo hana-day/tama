@@ -12,4 +12,5 @@ const (
 	QUOTE // "'"
 	TRUE  // "#t"
 	FALSE // "#f"
+	STRING
 )

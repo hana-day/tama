@@ -181,6 +181,12 @@ func (c *Compiler) compileBoolean(fs *funcState, bool types.Boolean) *reg {
 	return r
 }
 
+func (c *Compiler) compileString(fs *funcState, str types.String) *reg {
+	r := fs.newReg()
+	fs.addABx(OP_LOADK, r.n, fs.constIndex(str))
+	return r
+}
+
 func (c *Compiler) compileSymbol(fs *funcState, sym *types.Symbol) *reg {
 	switch fs.getVarType(sym) {
 	case varLocVar:
@@ -547,6 +553,8 @@ func (c *Compiler) compileTailObject(fs *funcState, obj types.Object) (*reg, err
 		return c.compileNumber(fs, o), nil
 	case types.Boolean:
 		return c.compileBoolean(fs, o), nil
+	case types.String:
+		return c.compileString(fs, o), nil
 	case *types.Symbol:
 		return c.compileSymbol(fs, o), nil
 	case *types.Pair:
@@ -562,6 +570,8 @@ func (c *Compiler) compileObject(fs *funcState, obj types.Object) (*reg, error) 
 		return c.compileNumber(fs, o), nil
 	case types.Boolean:
 		return c.compileBoolean(fs, o), nil
+	case types.String:
+		return c.compileString(fs, o), nil
 	case *types.Symbol:
 		return c.compileSymbol(fs, o), nil
 	case *types.Pair:

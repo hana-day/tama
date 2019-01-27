@@ -71,6 +71,14 @@ func (p *Parser) parsePair() (types.Object, error) {
 	return types.Cons(car, cdr), nil
 }
 
+func (p *Parser) parseString() (types.Object, error) {
+	s := types.String(p.lit)
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
 func (p *Parser) parseObject() (types.Object, error) {
 	tok := p.tok
 	switch tok {
@@ -100,6 +108,8 @@ func (p *Parser) parseObject() (types.Object, error) {
 			return types.Boolean(true), nil
 		}
 		return types.Boolean(false), nil
+	case scanner.STRING:
+		return p.parseString()
 	default:
 		return nil, types.NewSyntaxError("unexpected token %d", p.tok)
 
