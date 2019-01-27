@@ -5,12 +5,11 @@ type Token int
 const (
 	ILLEGAL Token = iota
 	EOF
-	INT
+	NUMBER
 	LPAREN // "("
 	RPAREN // ")"
 	IDENT
 	QUOTE // "'"
 	TRUE  // "#t"
 	FALSE // "#f"
-	COMMENT
 )

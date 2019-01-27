@@ -25,6 +25,13 @@ func (s *Scanner) next() {
 	}
 }
 
+func (s *Scanner) peek() byte {
+	if s.forward < len(s.src) {
+		return s.src[s.forward]
+	}
+	return eofCh
+}
+
 func (s *Scanner) Init(src []byte) {
 	s.src = src
 	s.ch = ' '
@@ -33,22 +40,22 @@ func (s *Scanner) Init(src []byte) {
 	s.next()
 }
 
-func (s *Scanner) skipSpaces() {
-	for s.ch == ' ' || s.ch == '\t' || s.ch == '\n' || s.ch == '\r' {
+func (s *Scanner) skipWhitespaces() {
+	if isWhitespace(s.ch) {
 		s.next()
 	}
 }
 
-func (s *Scanner) scanNumber() (Token, string) {
+func (s *Scanner) scanUnsigned() (Token, string) {
 	off := s.offset
-	for s.ch >= '0' && s.ch <= '9' {
+	for (s.ch >= '0' && s.ch <= '9') || s.ch == '.' {
 		s.next()
 	}
-	return INT, string(s.src[off:s.offset])
+	return NUMBER, string(s.src[off:s.offset])
 }
 
 var (
-	specialInits      = []byte{'!', '$', '%', '&', '*', '+', '-', '.', '/', ':', '<', '=', '>', '?', '@', '^', '_', '~'}
+	specialInits      = []byte{'!', '$', '%', '&', '*', '/', ':', '<', '=', '>', '?', '^', '_', '~'}
 	specialSubseqents = []byte{'+', '-', '.', '@'}
 )
 
@@ -74,12 +81,20 @@ func (s *Scanner) scanComment() {
 	}
 }
 
+func isWhitespace(ch byte) bool {
+	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+}
+
+func isDelimiter(ch byte) bool {
+	return isWhitespace(ch) || ch == '(' || ch == ')' || ch == '"' || ch == ';' || ch == eofCh
+}
+
 func (s *Scanner) Scan() (tok Token, lit string, err error) {
 scanAgain:
-	s.skipSpaces()
+	s.skipWhitespaces()
 	ch := s.ch
 	if isDigit(ch) {
-		tok, lit = s.scanNumber()
+		tok, lit = s.scanUnsigned()
 		return
 	}
 	if isInitial(ch) {
@@ -91,6 +106,24 @@ scanAgain:
 	switch ch {
 	case eofCh:
 		tok = EOF
+	case '+':
+		if isDelimiter(s.ch) {
+			tok = IDENT
+			lit = "+"
+		} else {
+			tok, lit = s.scanUnsigned()
+		}
+	case '-':
+		if isDelimiter(s.ch) {
+			tok = IDENT
+			lit = "-"
+		} else {
+			tok, lit = s.scanUnsigned()
+			lit = "-" + lit
+		}
+	case '.':
+		tok = IDENT
+		lit = "."
 	case '(':
 		tok = LPAREN
 	case ')':
@@ -106,7 +139,7 @@ scanAgain:
 		case 'f':
 			tok = FALSE
 		default:
-			return ILLEGAL, "", types.NewSyntaxError("unexpected token %c", s.ch)
+			return ILLEGAL, "", types.NewSyntaxError("unexpected token %c", ch2)
 		}
 	case ';':
 		s.scanComment()

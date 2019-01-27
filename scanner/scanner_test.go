@@ -17,7 +17,7 @@ func TestScan(t *testing.T) {
 		{
 			src: []byte(" 123 "),
 			expects: []expect{
-				{tok: INT, lit: "123"},
+				{tok: NUMBER, lit: "123"},
 				{tok: EOF, lit: ""},
 			},
 		},
@@ -33,8 +33,21 @@ func TestScan(t *testing.T) {
 			expects: []expect{
 				{tok: LPAREN, lit: ""},
 				{tok: IDENT, lit: "+"},
-				{tok: INT, lit: "1"},
-				{tok: INT, lit: "2"},
+				{tok: NUMBER, lit: "1"},
+				{tok: NUMBER, lit: "2"},
+				{tok: RPAREN, lit: ""},
+				{tok: EOF, lit: ""},
+			},
+		},
+		{
+			src: []byte("(+ +1 -2 1.11 -1.11)"),
+			expects: []expect{
+				{tok: LPAREN, lit: ""},
+				{tok: IDENT, lit: "+"},
+				{tok: NUMBER, lit: "1"},
+				{tok: NUMBER, lit: "-2"},
+				{tok: NUMBER, lit: "1.11"},
+				{tok: NUMBER, lit: "-1.11"},
 				{tok: RPAREN, lit: ""},
 				{tok: EOF, lit: ""},
 			},

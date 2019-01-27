@@ -42,7 +42,7 @@ func (p *Parser) expect(tok scanner.Token) error {
 	return nil
 }
 
-func (p *Parser) parseInt() (types.Object, error) {
+func (p *Parser) parseFloat() (types.Object, error) {
 	f, err := strconv.ParseFloat(p.lit, 64)
 	if err != nil {
 		return nil, types.NewSyntaxError("cannot parse %s as a number", p.lit)
@@ -74,8 +74,8 @@ func (p *Parser) parsePair() (types.Object, error) {
 func (p *Parser) parseObject() (types.Object, error) {
 	tok := p.tok
 	switch tok {
-	case scanner.INT:
-		return p.parseInt()
+	case scanner.NUMBER:
+		return p.parseFloat()
 	case scanner.LPAREN:
 		if err := p.next(); err != nil {
 			return nil, err
