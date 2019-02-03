@@ -23,6 +23,8 @@ const (
 	// Sets a range of registers from R(A) to R(B) to undefined.
 	OP_LOADUNDEF
 	OP_TAILCALL
+	// CALLCC A    call the closure at register R(A) with the continuation at register R(A+1)
+	OP_CALLCC
 )
 
 type opType int
@@ -53,6 +55,7 @@ var opProps = []opProp{
 	opProp{"JMP", opTypeASbx},
 	opProp{"LOADUNDEF", opTypeABC},
 	opProp{"TAILCALL", opTypeABC},
+	opProp{"CALLCC", opTypeABC},
 }
 
 const (

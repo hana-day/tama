@@ -478,6 +478,21 @@ func (c *Compiler) compileIf(fs *funcState, argsArr []types.Object) (*reg, error
 	return resultR, nil
 }
 
+func (c *Compiler) compileCallCC(fs *funcState, argsArr []types.Object) (*reg, error) {
+	if len(argsArr) != 1 {
+		return nil, types.NewSyntaxError("call/cc: invalid syntax")
+	}
+	r, err := c.compileObject(fs, argsArr[0])
+	if err != nil {
+		return nil, err
+	}
+	lambdaR := fs.newReg()
+	fs.addABC(OP_MOVE, lambdaR.n, r.n, 0)
+	fs.newReg() // create space for the argument of call/cc
+	fs.addABC(OP_CALLCC, lambdaR.n, 0, 0)
+	return lambdaR, nil
+}
+
 func (c *Compiler) compileCall(fs *funcState, proc types.Object, args []types.Object, tail bool) (*reg, error) {
 	procR, err := c.compileObject(fs, proc)
 	if err != nil {
@@ -538,6 +553,8 @@ func (c *Compiler) compilePair(fs *funcState, pair *types.Pair, tail bool) (*reg
 			return c.compileQuote(fs, argsArr)
 		case "if":
 			return c.compileIf(fs, argsArr)
+		case "call/cc":
+			return c.compileCallCC(fs, argsArr)
 		default: // (procedure-name args...)
 			return c.compileCall(fs, first, argsArr, tail)
 		}
@@ -627,10 +644,11 @@ func Compile(objs []types.Object) (*types.Closure, error) {
 
 var DefaultSyntaxes map[string]*types.Syntax = map[string]*types.Syntax{
 	// pseudo syntaxes
-	"define": types.NewSyntax("define", nil),
-	"lambda": types.NewSyntax("lambda", nil),
-	"begin":  types.NewSyntax("begin", nil),
-	"set!":   types.NewSyntax("set!", nil),
-	"quote":  types.NewSyntax("quote", nil),
-	"if":     types.NewSyntax("if", nil),
+	"define":  types.NewSyntax("define", nil),
+	"lambda":  types.NewSyntax("lambda", nil),
+	"begin":   types.NewSyntax("begin", nil),
+	"set!":    types.NewSyntax("set!", nil),
+	"quote":   types.NewSyntax("quote", nil),
+	"if":      types.NewSyntax("if", nil),
+	"call/cc": types.NewSyntax("call/cc", nil),
 }

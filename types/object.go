@@ -20,6 +20,7 @@ const (
 	TyPair
 	TyBoolean
 	TySyntax
+	TyContinuation
 	TyUndefined
 	TyError
 
@@ -35,6 +36,7 @@ var typeProps = []*typeProp{
 	&typeProp{TyPair, "pair"},
 	&typeProp{TyBoolean, "boolean"},
 	&typeProp{TySyntax, "syntax"},
+	&typeProp{TyContinuation, "continuation"},
 	&typeProp{TyUndefined, "undefined"},
 	&typeProp{TyError, "error"},
 	&typeProp{TyCallInfo, "callinfo"},

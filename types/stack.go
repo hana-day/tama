@@ -65,6 +65,21 @@ func (s *Stack) Set(i int, obj Object) {
 	s.arr[i] = obj
 }
 
+func (s *Stack) Store(to int) *Stack {
+	newS := NewStack(to + 1)
+	for i := 0; i <= to; i++ {
+		newS.Set(i, s.Get(i))
+	}
+	return newS
+}
+
+func (s *Stack) Restore(data *Stack) {
+	for i := 0; i < data.Len(); i++ {
+		s.Set(i, data.Get(i))
+	}
+	s.SetSp(data.Len() - 1)
+}
+
 func (s *Stack) Dump() {
 	fmt.Printf("SP = %d, LEN = %d\n", s.sp, s.len)
 	for i := 0; i < 20; i++ {

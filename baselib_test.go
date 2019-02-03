@@ -9,6 +9,7 @@ import (
 type tcase struct {
 	src       string
 	expect    string
+	option    Option
 	expectErr bool
 }
 
@@ -26,7 +27,7 @@ func (tc *tcase) noerror(t *testing.T, caseNo int) {
 
 func testTcases(t *testing.T, tcases []*tcase) {
 	for i, tc := range tcases {
-		s := NewState(Option{})
+		s := NewState(tc.option)
 		err := s.ExecString(tc.src)
 		if tc.expectErr {
 			if err == nil {
@@ -99,6 +100,18 @@ func TestIf(t *testing.T) {
 		&tcase{src: "(define a 1) (if #f (set! a 2) (set! a 100)) a", expect: "100"},
 		&tcase{src: "(define a 1) (if 0 (set! a 2)) a", expect: "2"},
 		&tcase{src: "(if #f 1)", expect: types.UndefinedObject.String()},
+	}
+	testTcases(t, tcases)
+}
+
+func TestCallCc(t *testing.T) {
+	tcases := []*tcase{
+		&tcase{src: "(call/cc (lambda (cc) (cc 3) 5))", expect: "3"},
+		&tcase{src: "((lambda (x) (call/cc (lambda (cc) (cc x)))) 3)", expect: "3"},
+		&tcase{src: "((lambda (x) (call/cc (lambda (cc) (cc x) 5))) 3)", expect: "3"},
+		&tcase{src: "((lambda (z) ((lambda (x y) (call/cc (lambda (cc) (cc x)))) 3 4)) 100)", expect: "3"},
+		&tcase{src: "((lambda (z) ((lambda (x y) (call/cc (lambda (cc) (cc x) 99))) 3 4)) 100)", expect: "3"},
+		&tcase{src: "((lambda (z a) ((lambda (x y) (call/cc (lambda (cc) (cc x) 99))) 3 4)) 100 99)", expect: "3"},
 	}
 	testTcases(t, tcases)
 }

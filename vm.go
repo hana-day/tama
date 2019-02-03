@@ -8,11 +8,13 @@ import (
 
 func runVM(s *State, debug bool) error {
 	nexeccalls := 1
+	nuated := false            // true if came back by using the continuation
+	var nuatedObj types.Object // argument of the continuation
 reentry:
 	if debug {
 		fmt.Println("[Enter function]")
 	}
-	ci, _ := s.CallInfos.Top().(*types.CallInfo)
+	ci := s.CallInfos.Top().(*types.CallInfo)
 	cl := ci.Cl
 	base := ci.Base
 	for {
@@ -75,22 +77,6 @@ reentry:
 						fmt.Printf("%-20s ; Up[%d] = Up[%d]\n", compiler.DumpInst(inst), i, b)
 					}
 				}
-			}
-
-		case compiler.OP_CALL:
-			b := compiler.GetArgB(inst)
-			s.CallStack.SetSp(ra + b - 1)
-			if debug {
-				cl := s.CallStack.Get(ra)
-				fmt.Printf("%-20s ; R[%d] = %v(R[%d]...R[%d])\n", compiler.DumpInst(inst), ra, cl, ra+1, ra+b-1)
-			}
-			precalledCi, err := s.precall(ra)
-			if err != nil {
-				return err
-			}
-			if !precalledCi.Cl.IsGo {
-				nexeccalls++
-				goto reentry
 			}
 		case compiler.OP_RETURN:
 			b := compiler.GetArgB(inst)
@@ -156,38 +142,90 @@ reentry:
 			if debug {
 				fmt.Printf("%-20s ; R[%d] ... R[%d] = undefined\n", compiler.DumpInst(inst), ra, rb)
 			}
-		case compiler.OP_TAILCALL:
+		case compiler.OP_CALL, compiler.OP_TAILCALL:
 			b := compiler.GetArgB(inst)
 			s.CallStack.SetSp(ra + b - 1)
+			obj := s.CallStack.Get(ra)
 			if debug {
-				cl := s.CallStack.Get(ra)
-				fmt.Printf("%-20s ; R[%d] = %v(R[%d]...R[%d])\n", compiler.DumpInst(inst), ra, cl, ra+1, ra+b-1)
+				fmt.Printf("%-20s ; R[%d] = %v(R[%d]...R[%d])\n", compiler.DumpInst(inst), ra, obj, ra+1, ra+b-1)
 			}
-			curCi, err := s.precall(ra)
-			if err != nil {
-				return err
-			}
-
-			// precalled scheme closure
-			if !curCi.Cl.IsGo {
-				nargs := s.CallStack.Sp() - ra
-
-				// pop current call info
-				_ = s.CallInfos.Pop()
-				prevCi := s.CallInfos.Top().(*types.CallInfo)
-
-				// place the current closure and arguments to the previous closure sp
-				s.CallStack.Set(prevCi.FuncSp, curCi.Cl)
-				for i := 0; i < nargs; i++ {
-					s.CallStack.Set(prevCi.FuncSp+i+1, s.CallStack.Get(curCi.FuncSp+i+1))
+			switch o := obj.(type) {
+			case *types.Closure:
+				curCi, err := s.precall(ra)
+				if err != nil {
+					return err
 				}
-				s.CallStack.SetSp(prevCi.FuncSp + nargs)
 
-				// set information of tailcalling function to the previous call info
-				prevCi.Cl = curCi.Cl
-				prevCi.Pc = 0
+				switch compiler.GetOpCode(inst) {
+				case compiler.OP_CALL:
+					if !curCi.Cl.IsGo {
+						nexeccalls++
+						goto reentry
+					}
+				case compiler.OP_TAILCALL:
+					// precalled scheme closure
+					if !curCi.Cl.IsGo {
+						nargs := s.CallStack.Sp() - ra
 
+						// pop current call info
+						_ = s.CallInfos.Pop()
+						prevCi := s.CallInfos.Top().(*types.CallInfo)
+
+						// place the current closure and arguments to the previous closure sp
+						s.CallStack.Set(prevCi.FuncSp, curCi.Cl)
+						for i := 0; i < nargs; i++ {
+							s.CallStack.Set(prevCi.FuncSp+i+1, s.CallStack.Get(curCi.FuncSp+i+1))
+						}
+						s.CallStack.SetSp(prevCi.FuncSp + nargs)
+
+						// set information of tailcalling function to the previous call info
+						prevCi.Cl = curCi.Cl
+						prevCi.Pc = 0
+
+						goto reentry
+					}
+				}
+			case *types.Continuation:
+				cont := o
+				s.CallStack.Restore(cont.CallStack)
+				s.CallInfos.Restore(cont.CallInfos)
+				ci := s.CallInfos.Top().(*types.CallInfo)
+				ci.Pc = cont.Pc
+				nexeccalls = cont.NExecCalls
+				nuated = true
+				nuatedObj = s.CallStack.Get(ra + b - 1)
 				goto reentry
+			}
+		case compiler.OP_CALLCC:
+			if nuated {
+				s.CallStack.Set(ra, nuatedObj)
+				nuated = false
+
+				if debug {
+					fmt.Printf("%-20s ; R[%d] = %v\n", compiler.DumpInst(inst), ra, nuatedObj)
+				}
+			} else {
+				callinfos := s.CallInfos.Store(s.CallInfos.Sp())
+				callstack := s.CallStack.Store(s.CallStack.Sp())
+				pc := ci.Pc - 1
+				cont := types.NewContinuation(callinfos, callstack, pc, nexeccalls)
+				// set the current continuation as an argument
+				s.CallStack.Set(ra+1, cont)
+				s.CallStack.SetSp(ra + 1)
+
+				if debug {
+					fmt.Printf("%-20s ; R[%d](%v)\n", compiler.DumpInst(inst), ra, cont)
+				}
+
+				// same with OP_CALL
+				precalledCi, err := s.precall(ra)
+				if err != nil {
+					return err
+				}
+				if !precalledCi.Cl.IsGo {
+					nexeccalls++
+					goto reentry
+				}
 			}
 		}
 	}
