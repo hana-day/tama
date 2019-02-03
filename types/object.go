@@ -21,6 +21,7 @@ const (
 	TyBoolean
 	TySyntax
 	TyContinuation
+	TyVector
 	TyUndefined
 	TyError
 
@@ -37,6 +38,7 @@ var typeProps = []*typeProp{
 	&typeProp{TyBoolean, "boolean"},
 	&typeProp{TySyntax, "syntax"},
 	&typeProp{TyContinuation, "continuation"},
+	&typeProp{TyVector, "vector"},
 	&typeProp{TyUndefined, "undefined"},
 	&typeProp{TyError, "error"},
 	&typeProp{TyCallInfo, "callinfo"},

@@ -150,6 +150,8 @@ scanAgain:
 			tok = TRUE
 		case 'f':
 			tok = FALSE
+		case '(':
+			tok = VLPAREN
 		default:
 			return ILLEGAL, "", types.NewSyntaxError("unexpected token %c", ch2)
 		}

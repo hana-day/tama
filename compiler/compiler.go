@@ -169,21 +169,9 @@ func (fs *funcState) currentPc() int {
 	return len(fs.proto.Insts) - 1
 }
 
-func (c *Compiler) compileNumber(fs *funcState, num types.Number) *reg {
+func (c *Compiler) compileConst(fs *funcState, obj types.Object) *reg {
 	r := fs.newReg()
-	fs.addABx(OP_LOADK, r.n, fs.constIndex(num))
-	return r
-}
-
-func (c *Compiler) compileBoolean(fs *funcState, bool types.Boolean) *reg {
-	r := fs.newReg()
-	fs.addABx(OP_LOADK, r.n, fs.constIndex(bool))
-	return r
-}
-
-func (c *Compiler) compileString(fs *funcState, str types.String) *reg {
-	r := fs.newReg()
-	fs.addABx(OP_LOADK, r.n, fs.constIndex(str))
+	fs.addABx(OP_LOADK, r.n, fs.constIndex(obj))
 	return r
 }
 
@@ -566,12 +554,8 @@ func (c *Compiler) compilePair(fs *funcState, pair *types.Pair, tail bool) (*reg
 
 func (c *Compiler) compileTailObject(fs *funcState, obj types.Object) (*reg, error) {
 	switch o := obj.(type) {
-	case types.Number:
-		return c.compileNumber(fs, o), nil
-	case types.Boolean:
-		return c.compileBoolean(fs, o), nil
-	case types.String:
-		return c.compileString(fs, o), nil
+	case types.Number, types.Boolean, types.String, types.Vector:
+		return c.compileConst(fs, o), nil
 	case *types.Symbol:
 		return c.compileSymbol(fs, o), nil
 	case *types.Pair:
@@ -583,12 +567,8 @@ func (c *Compiler) compileTailObject(fs *funcState, obj types.Object) (*reg, err
 
 func (c *Compiler) compileObject(fs *funcState, obj types.Object) (*reg, error) {
 	switch o := obj.(type) {
-	case types.Number:
-		return c.compileNumber(fs, o), nil
-	case types.Boolean:
-		return c.compileBoolean(fs, o), nil
-	case types.String:
-		return c.compileString(fs, o), nil
+	case types.Number, types.Boolean, types.String, types.Vector:
+		return c.compileConst(fs, o), nil
 	case *types.Symbol:
 		return c.compileSymbol(fs, o), nil
 	case *types.Pair:

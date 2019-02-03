@@ -71,6 +71,21 @@ func (p *Parser) parsePair() (types.Object, error) {
 	return types.Cons(car, cdr), nil
 }
 
+func (p *Parser) parseVector() (types.Object, error) {
+	var v types.Vector
+	for p.tok != scanner.RPAREN {
+		o, err := p.parseObject()
+		if err != nil {
+			return nil, err
+		}
+		v = append(v, o)
+	}
+	if err := p.next(); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
 func (p *Parser) parseString() (types.Object, error) {
 	s := types.String(p.lit)
 	if err := p.next(); err != nil {
@@ -89,6 +104,11 @@ func (p *Parser) parseObject() (types.Object, error) {
 			return nil, err
 		}
 		return p.parsePair()
+	case scanner.VLPAREN:
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+		return p.parseVector()
 	case scanner.IDENT:
 		return p.parseIdent()
 	case scanner.QUOTE: // '(1 2 3) => (quote (1 2 3))

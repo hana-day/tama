@@ -25,6 +25,7 @@ func (s *State) OpenBase() *State {
 	s.RegisterFunc("<=", 2, -1, genFnComp("<="))
 	s.RegisterFunc(">=", 2, -1, genFnComp(">="))
 	s.RegisterFunc("string-length", 1, 1, fnStrLen)
+	s.RegisterFunc("vector-ref", 2, 2, fnVecRef)
 	return s
 }
 
@@ -160,4 +161,21 @@ func fnStrLen(s *State, args []types.Object) (types.Object, error) {
 	}
 	str := args[0].(types.String)
 	return types.Number(len(str)), nil
+}
+
+// 6.3.6 Vectors
+
+func fnVecRef(s *State, args []types.Object) (types.Object, error) {
+	if err := types.AssertType(types.TyVector, args[0]); err != nil {
+		return nil, err
+	}
+	if err := types.AssertType(types.TyNumber, args[1]); err != nil {
+		return nil, err
+	}
+	v := args[0].(types.Vector)
+	k := args[1].(types.Number)
+	if int(k) > len(v)-1 {
+		return nil, types.NewInternalError("index out of range: %d", int(k))
+	}
+	return v[int(k)], nil
 }

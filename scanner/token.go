@@ -13,4 +13,5 @@ const (
 	TRUE  // "#t"
 	FALSE // "#f"
 	STRING
+	VLPAREN // "#("
 )

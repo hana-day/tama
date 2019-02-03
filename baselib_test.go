@@ -104,7 +104,7 @@ func TestIf(t *testing.T) {
 	testTcases(t, tcases)
 }
 
-func TestCallCc(t *testing.T) {
+func TestCallCC(t *testing.T) {
 	tcases := []*tcase{
 		&tcase{src: "(call/cc (lambda (cc) (cc 3) 5))", expect: "3"},
 		&tcase{src: "((lambda (x) (call/cc (lambda (cc) (cc x)))) 3)", expect: "3"},
@@ -198,6 +198,16 @@ func TestFnStrLen(t *testing.T) {
 		&tcase{src: "(string-length \"test\")", expect: "4"},
 		&tcase{src: "(string-length \"\")", expect: "0"},
 		&tcase{src: "(string-length 1)", expectErr: true},
+	}
+	testTcases(t, tcases)
+}
+
+// 6.3.6 Vectors
+func TestFnVecRef(t *testing.T) {
+	tcases := []*tcase{
+		&tcase{src: "(vector-ref #(1 2 3 4 5) 1)", expect: "2"},
+		&tcase{src: "(vector-ref '(1 2 3 4 5) 1)", expectErr: true},
+		&tcase{src: "(vector-ref #(1 2 3 4 5) 5)", expectErr: true},
 	}
 	testTcases(t, tcases)
 }
