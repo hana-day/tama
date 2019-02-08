@@ -8,7 +8,7 @@ import (
 func TestCompileNumber(t *testing.T) {
 	num := types.Number(1)
 	objs := []types.Object{num}
-	cl, err := Compile(objs)
+	cl, err := Compile(map[string]types.Object{}, objs)
 	if err != nil {
 		t.Fatal(err)
 	}

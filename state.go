@@ -54,7 +54,7 @@ func (s *State) LoadString(source string) (*types.Closure, error) {
 	if err != nil {
 		return nil, err
 	}
-	return compiler.Compile(f.Objs)
+	return compiler.Compile(s.Global, f.Objs)
 }
 
 // popArgs pops arguements and create a slice [argument 1, ..., argument nargs].
@@ -251,4 +251,8 @@ func (s *State) RegisterFunc(name string, minArg int, maxArg int, fn GoFunc) err
 	cl := types.NewGoClosure(name, minArg, maxArg, fn)
 	s.SetGlobal(name, cl)
 	return nil
+}
+
+func (s *State) registerSyntax(name string, syntax *types.Syntax) {
+	s.SetGlobal(name, syntax)
 }

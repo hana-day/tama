@@ -5,6 +5,7 @@ import (
 )
 
 type Compiler struct {
+	global map[string]types.Object
 }
 
 type varType int
@@ -608,8 +609,8 @@ func (c *Compiler) compileObjects(fs *funcState, objs []types.Object) ([]*reg, e
 	return regs, nil
 }
 
-func Compile(objs []types.Object) (*types.Closure, error) {
-	c := Compiler{}
+func Compile(global map[string]types.Object, objs []types.Object) (*types.Closure, error) {
+	c := Compiler{global: global}
 	fs := newFuncState(nil)
 	regs, err := c.compileObjects(fs, objs)
 	if err != nil {
@@ -620,15 +621,4 @@ func Compile(objs []types.Object) (*types.Closure, error) {
 
 	cl := types.NewScmClosure(fs.proto, 0)
 	return cl, nil
-}
-
-var DefaultSyntaxes map[string]*types.Syntax = map[string]*types.Syntax{
-	// pseudo syntaxes
-	"define":  types.NewSyntax("define", nil),
-	"lambda":  types.NewSyntax("lambda", nil),
-	"begin":   types.NewSyntax("begin", nil),
-	"set!":    types.NewSyntax("set!", nil),
-	"quote":   types.NewSyntax("quote", nil),
-	"if":      types.NewSyntax("if", nil),
-	"call/cc": types.NewSyntax("call/cc", nil),
 }

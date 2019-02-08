@@ -1,15 +1,18 @@
 package tama
 
 import (
-	"github.com/hyusuk/tama/compiler"
 	"github.com/hyusuk/tama/types"
 )
 
 func (s *State) OpenBase() *State {
-	// set syntaxes
-	for name, syntax := range compiler.DefaultSyntaxes {
-		s.SetGlobal(name, syntax)
-	}
+	// pseudo syntaxes
+	s.registerSyntax("define", types.NewSyntax("define", nil))
+	s.registerSyntax("lambda", types.NewSyntax("lambda", nil))
+	s.registerSyntax("begin", types.NewSyntax("begin", nil))
+	s.registerSyntax("set!", types.NewSyntax("set!", nil))
+	s.registerSyntax("quote", types.NewSyntax("quote", nil))
+	s.registerSyntax("if", types.NewSyntax("if", nil))
+	s.registerSyntax("call/cc", types.NewSyntax("call/cc", nil))
 
 	// set procedures
 	s.RegisterFunc("+", 0, -1, fnAdd)
